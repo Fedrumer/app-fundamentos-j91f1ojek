@@ -15,6 +15,9 @@ import {
   IContratoPreVenda,
   IExtratoPreVenda,
   IClassificacaoRepo,
+  IDashboardStats,
+  IIngestaoLog,
+  IAlerta,
 } from '@/domain/contracts'
 
 export class UsersRepoSupabase implements IUsersRepo {
@@ -436,6 +439,158 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
       crescimento: 0,
       moeda: pais === 'BR' ? 'BRL' : 'ARS',
     }
+  }
+
+  async getDashboardCompleto(pais: 'BR' | 'AR'): Promise<IDashboardStats> {
+    const [vouchersRes, faturamentoRes, agenciasRes] = await Promise.all([
+      supabase
+        .from('vouchers')
+        .select('amount_paid, moeda_monto, tipo_canal_atual, data_criacao, tipo_zero_amount')
+        .eq('pais', pais),
+      supabase
+        .from('faturamento_vigente')
+        .select('comissao, moeda, status_quitacao')
+        .eq('pais', pais),
+      supabase.from('agencias').select('id', { count: 'exact' }).eq('pais', pais),
+    ])
+
+    if (vouchersRes.error) throw new Error(vouchersRes.error.message)
+    if (faturamentoRes.error) throw new Error(faturamentoRes.error.message)
+
+    const vouchers = vouchersRes.data || []
+    const faturamentos = faturamentoRes.data || []
+
+    const totaisPorMoeda: Record<
+      string,
+      { amountPaid: number; comissao: number; liquido: number; valoresReceber: number }
+    > = {}
+    let totalCortesias = 0
+    let totalPreVenda = 0
+    let b2bCount = 0
+    let b2cCount = 0
+
+    const evolucaoMap: Record<string, Record<string, number>> = {}
+
+    vouchers.forEach((v) => {
+      const moeda = v.moeda_monto || (pais === 'BR' ? 'BRL' : 'ARS')
+      if (!totaisPorMoeda[moeda])
+        totaisPorMoeda[moeda] = { amountPaid: 0, comissao: 0, liquido: 0, valoresReceber: 0 }
+
+      const amount = v.amount_paid || 0
+      totaisPorMoeda[moeda].amountPaid += amount
+
+      if (v.tipo_zero_amount === 'CORTESIA') totalCortesias++
+      if (v.tipo_zero_amount === 'PRE_VENDA') totalPreVenda++
+
+      if (v.tipo_canal_atual === 'B2C' || v.tipo_canal_atual === 'B2C_ATTRIBUTED') b2cCount++
+      else b2bCount++
+
+      if (v.data_criacao && amount > 0) {
+        const dataDia = v.data_criacao.split('T')[0]
+        if (!evolucaoMap[dataDia]) evolucaoMap[dataDia] = {}
+        if (!evolucaoMap[dataDia][moeda]) evolucaoMap[dataDia][moeda] = 0
+        evolucaoMap[dataDia][moeda] += amount
+      }
+    })
+
+    faturamentos.forEach((f) => {
+      const moeda = f.moeda || (pais === 'BR' ? 'BRL' : 'ARS')
+      if (!totaisPorMoeda[moeda])
+        totaisPorMoeda[moeda] = { amountPaid: 0, comissao: 0, liquido: 0, valoresReceber: 0 }
+
+      totaisPorMoeda[moeda].comissao += f.comissao || 0
+
+      if (f.status_quitacao === 'PENDENTE') {
+        totaisPorMoeda[moeda].valoresReceber += f.comissao || 0
+      }
+    })
+
+    Object.keys(totaisPorMoeda).forEach((m) => {
+      totaisPorMoeda[m].liquido = totaisPorMoeda[m].amountPaid - totaisPorMoeda[m].comissao
+    })
+
+    const evolucaoDiaria = Object.entries(evolucaoMap)
+      .sort(([d1], [d2]) => d1.localeCompare(d2))
+      .flatMap(([data, moedas]) =>
+        Object.entries(moedas).map(([moeda, valor]) => ({ data, valor, moeda })),
+      )
+
+    return {
+      totaisPorMoeda,
+      totalVouchers: vouchers.length,
+      totalPreVenda,
+      totalCortesias,
+      agenciasAtivas: agenciasRes.count || 0,
+      evolucaoDiaria,
+      distribuicaoCanal: [
+        { name: 'B2B', value: b2bCount },
+        { name: 'B2C', value: b2cCount },
+      ],
+    }
+  }
+
+  async getIngestions(pais: 'BR' | 'AR'): Promise<IIngestaoLog[]> {
+    const { data, error } = await supabase
+      .from('ingestao_logs')
+      .select('*')
+      .eq('pais_processado', pais)
+      .order('data_ingestao', { ascending: false })
+      .limit(5)
+
+    if (error) throw new Error(error.message)
+    return data.map((d) => ({
+      id: d.id,
+      data_ingestao: d.data_ingestao || '',
+      status: d.status || '',
+      quantidade_registros: d.quantidade_registros || 0,
+      quantidade_falhadas: d.quantidade_falhadas || 0,
+      mensagem_erro: d.mensagem_erro || '',
+    }))
+  }
+
+  async getAlerts(pais: 'BR' | 'AR'): Promise<IAlerta[]> {
+    const alerts: IAlerta[] = []
+
+    const trintaDiasAtras = new Date()
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30)
+
+    const { data: vencidos } = await supabase
+      .from('faturamento_vigente')
+      .select('agencia_recebedora_nome')
+      .eq('pais', pais)
+      .eq('status_quitacao', 'PENDENTE')
+      .lt('created_at', trintaDiasAtras.toISOString())
+      .limit(5)
+
+    if (vencidos && vencidos.length > 0) {
+      const names = new Set(vencidos.map((v) => v.agencia_recebedora_nome))
+      names.forEach((name) => {
+        alerts.push({
+          id: Math.random().toString(),
+          tipo: 'CURRENTACCOUNT',
+          mensagem: `Fatura de ${name} pendente há mais de 30 dias.`,
+          data: new Date().toISOString(),
+        })
+      })
+    }
+
+    const { count: semZeroAmount } = await supabase
+      .from('vouchers')
+      .select('id', { count: 'exact' })
+      .eq('pais', pais)
+      .eq('amount_paid', 0)
+      .is('tipo_zero_amount', null)
+
+    if (semZeroAmount && semZeroAmount > 0) {
+      alerts.push({
+        id: Math.random().toString(),
+        tipo: 'DISCREPANCIA',
+        mensagem: `Existem ${semZeroAmount} vouchers com valor 0 aguardando classificação.`,
+        data: new Date().toISOString(),
+      })
+    }
+
+    return alerts
   }
 
   async getTransacoes(pais: 'BR' | 'AR'): Promise<any[]> {

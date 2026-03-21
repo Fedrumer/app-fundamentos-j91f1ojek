@@ -29,6 +29,8 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { IContratoPreVenda } from '@/domain/contracts'
+import { Printer } from 'lucide-react'
+import { PrintWatermark } from '@/components/PrintWatermark'
 
 export default function Cortesias() {
   const { session } = useTenant()
@@ -102,19 +104,43 @@ export default function Cortesias() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const tabLabels: Record<string, string> = {
+    'a-classificar': 'A Classificar',
+    cortesias: 'Cortesias Confirmadas',
+    'pre-venda': 'Vouchers de Pré-Venda',
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Classificação e Cortesias
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Gestão de vouchers emitidos com custo zero na região {session?.pais_ativo}.
+    <div className="space-y-6 relative">
+      <PrintWatermark locked={false} />
+
+      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 print:hidden">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Classificação e Cortesias
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            Gestão de vouchers emitidos com custo zero na região {session?.pais_ativo}.
+          </p>
+        </div>
+        <Button variant="outline" onClick={handlePrint} className="gap-2">
+          <Printer className="w-4 h-4" /> Exportar PDF
+        </Button>
+      </div>
+
+      <div className="hidden print:block mb-8">
+        <h1 className="text-2xl font-bold">Relatório de {tabLabels[activeTab]}</h1>
+        <p className="text-sm text-slate-600 mt-2">
+          <strong>Região:</strong> {session?.pais_ativo === 'BR' ? 'Brasil' : 'Argentina'}
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 print:hidden">
           <TabsTrigger value="a-classificar">A Classificar</TabsTrigger>
           <TabsTrigger value="cortesias">Cortesias</TabsTrigger>
           <TabsTrigger value="pre-venda">Pré-Venda</TabsTrigger>
@@ -139,24 +165,28 @@ export default function Cortesias() {
                     <TableHead>Destino</TableHead>
                     <TableHead>Plano</TableHead>
                     <TableHead className="text-center">Dias</TableHead>
-                    <TableHead className="pr-4 text-right">Ação</TableHead>
+                    <TableHead className="pr-4 text-right print:hidden">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((v) => (
                     <TableRow key={v.id} className="hover:bg-slate-50/80 transition-colors">
                       <TableCell className="pl-4 font-mono">{v.voucher_code}</TableCell>
-                      <TableCell className="text-slate-600">{v.agencia}</TableCell>
+                      <TableCell className="text-slate-600 truncate max-w-[150px]">
+                        {v.agencia}
+                      </TableCell>
                       <TableCell className="text-slate-600">{v.data_emissao}</TableCell>
                       <TableCell className="text-center font-medium">
                         {v.passageiros_count}
                       </TableCell>
-                      <TableCell className="text-slate-600">{v.destino}</TableCell>
+                      <TableCell className="text-slate-600 truncate max-w-[100px]">
+                        {v.destino}
+                      </TableCell>
                       <TableCell className="text-slate-600 truncate max-w-[150px]">
                         {v.plano}
                       </TableCell>
                       <TableCell className="text-center font-medium">{v.dias_viagem}</TableCell>
-                      <TableCell className="pr-4 text-right">
+                      <TableCell className="pr-4 text-right print:hidden">
                         {activeTab === 'a-classificar' && (
                           <Button
                             variant="outline"

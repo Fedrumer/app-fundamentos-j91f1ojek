@@ -14,6 +14,9 @@ import {
   IClassificacaoRepo,
   IContratoPreVenda,
   IExtratoPreVenda,
+  IDashboardStats,
+  IIngestaoLog,
+  IAlerta,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -350,6 +353,51 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
       ? { receitaTotal: 1250000.5, vendasMensais: 3450, crescimento: 12.5, moeda: 'BRL' }
       : { receitaTotal: 45000000.0, vendasMensais: 1200, crescimento: 8.2, moeda: 'ARS' }
   }
+
+  async getDashboardCompleto(pais: 'BR' | 'AR'): Promise<IDashboardStats> {
+    return {
+      totaisPorMoeda: {
+        BRL: { amountPaid: 15000, comissao: 1500, liquido: 13500, valoresReceber: 500 },
+      },
+      totalVouchers: 150,
+      totalPreVenda: 12,
+      agenciasAtivas: 34,
+      totalCortesias: 5,
+      evolucaoDiaria: [
+        { data: '2023-10-01', valor: 1000, moeda: 'BRL' },
+        { data: '2023-10-02', valor: 1500, moeda: 'BRL' },
+      ],
+      distribuicaoCanal: [
+        { name: 'B2B', value: 80 },
+        { name: 'B2C', value: 20 },
+      ],
+    }
+  }
+
+  async getIngestions(pais: 'BR' | 'AR'): Promise<IIngestaoLog[]> {
+    return [
+      {
+        id: '1',
+        data_ingestao: new Date().toISOString(),
+        status: 'SUCESSO',
+        quantidade_registros: 150,
+        quantidade_falhadas: 0,
+        mensagem_erro: '',
+      },
+    ]
+  }
+
+  async getAlerts(pais: 'BR' | 'AR'): Promise<IAlerta[]> {
+    return [
+      {
+        id: 'a1',
+        tipo: 'CURRENTACCOUNT',
+        mensagem: 'Fatura Agência SP pendente há mais de 30 dias',
+        data: new Date().toISOString(),
+      },
+    ]
+  }
+
   async getTransacoes(pais: 'BR' | 'AR'): Promise<any[]> {
     return pais === 'BR'
       ? [{ id: 'T1', data: '2023-10-01', valor: 500, tipo: 'Entrada' }]

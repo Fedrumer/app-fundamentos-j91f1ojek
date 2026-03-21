@@ -49,7 +49,7 @@ export default function MainLayout() {
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen w-full flex-col bg-slate-50">
-        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white px-4 shadow-sm md:px-6">
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white px-4 shadow-sm md:px-6 print:hidden">
           <div className="flex items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
@@ -178,8 +178,8 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-300 p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto print:overflow-visible">
+          <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-300 p-4 md:p-6 lg:p-8 print:p-0 print:max-w-none">
             <Outlet key={session.pais_ativo} />
           </div>
         </main>

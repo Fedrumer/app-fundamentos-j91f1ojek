@@ -28,8 +28,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, List } from 'lucide-react'
+import { Plus, List, Printer } from 'lucide-react'
 import { IContratoPreVenda, IExtratoPreVenda } from '@/domain/contracts'
+import { PrintWatermark } from '@/components/PrintWatermark'
 
 export default function PreVenda() {
   const { session } = useTenant()
@@ -118,20 +119,41 @@ export default function PreVenda() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  // Pre-venda generally doesn't have a locked state like billing, so we show DRAFT
+  const isLocked = false
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
+    <div className="space-y-6 relative">
+      <PrintWatermark locked={isLocked} />
+
+      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Pré-Venda</h1>
           <p className="mt-1 text-muted-foreground">Gestão de contratos e consumo de pacotes</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2 shadow-sm font-medium">
-          <Plus className="w-4 h-4" /> Novo Contrato
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handlePrint} className="gap-2">
+            <Printer className="w-4 h-4" /> Exportar PDF
+          </Button>
+          <Button onClick={() => setShowAdd(true)} className="gap-2 shadow-sm font-medium">
+            <Plus className="w-4 h-4" /> Novo Contrato
+          </Button>
+        </div>
+      </div>
+
+      <div className="hidden print:block mb-8">
+        <h1 className="text-2xl font-bold">Relatório de Contratos de Pré-Venda</h1>
+        <p className="text-sm text-slate-600 mt-2">
+          <strong>Região:</strong> {session?.pais_ativo === 'BR' ? 'Brasil' : 'Argentina'}
+        </p>
       </div>
 
       <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+        <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4 print:hidden">
           <CardTitle className="text-lg">Contratos Ativos ({session?.pais_ativo})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -151,7 +173,7 @@ export default function PreVenda() {
                   <TableHead className="text-center">Dias Consumidos</TableHead>
                   <TableHead className="text-center">Saldo Restante</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="pr-4 text-right">Extrato</TableHead>
+                  <TableHead className="pr-4 text-right print:hidden">Extrato</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -169,9 +191,11 @@ export default function PreVenda() {
                       {c.dias_iniciais - c.dias_consumidos}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{c.status}</Badge>
+                      <Badge variant="outline" className="print:border-black print:text-black">
+                        {c.status}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="pr-4 text-right">
+                    <TableCell className="pr-4 text-right print:hidden">
                       <Button variant="ghost" size="sm" onClick={() => handleVerExtrato(c.id)}>
                         <List className="w-4 h-4 sm:mr-1.5" />{' '}
                         <span className="hidden sm:inline">Ver Movimentação</span>

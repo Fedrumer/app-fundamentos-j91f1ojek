@@ -23,7 +23,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { IAgencia, ILancamentoFaturamento } from '@/domain/contracts'
-import { Lock, FileText, CheckCircle2, DollarSign } from 'lucide-react'
+import { Lock, FileText, CheckCircle2, DollarSign, Printer } from 'lucide-react'
+import { PrintWatermark } from '@/components/PrintWatermark'
 
 export default function Finance() {
   const { session } = useTenant()
@@ -85,6 +86,7 @@ export default function Finance() {
   }, [filteredLancamentos, session?.moeda_padrao])
 
   const lancamentosNaoTravados = filteredLancamentos.filter((l) => !l.fatura_travada)
+  const isAllLocked = lancamentos.length > 0 && lancamentosNaoTravados.length === 0
 
   const handleTravarFatura = async () => {
     if (!selectedAgency || !selectedPeriod) return
@@ -116,6 +118,10 @@ export default function Finance() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   const formatCurrency = (val: number, cur: string) => {
     return new Intl.NumberFormat(cur === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -124,26 +130,33 @@ export default function Finance() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
+    <div className="space-y-6 relative">
+      <PrintWatermark locked={isAllLocked} />
+
+      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Faturamento</h1>
           <p className="mt-1 text-muted-foreground">
             Gestão financeira e fechamento de comissões ({session?.pais_ativo})
           </p>
         </div>
-        <Button
-          onClick={handleTravarFatura}
-          disabled={
-            !selectedAgency || !selectedPeriod || lancamentosNaoTravados.length === 0 || isLocking
-          }
-          className="gap-2 shadow-sm font-medium bg-slate-900 hover:bg-slate-800 text-white"
-        >
-          <Lock className="h-4 w-4" /> Travar Fatura
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handlePrint} className="gap-2">
+            <Printer className="h-4 w-4" /> Exportar PDF
+          </Button>
+          <Button
+            onClick={handleTravarFatura}
+            disabled={
+              !selectedAgency || !selectedPeriod || lancamentosNaoTravados.length === 0 || isLocking
+            }
+            className="gap-2 shadow-sm font-medium bg-slate-900 hover:bg-slate-800 text-white"
+          >
+            <Lock className="h-4 w-4" /> Travar Fatura
+          </Button>
+        </div>
       </div>
 
-      <Card className="p-4 border-slate-200/60 shadow-sm flex flex-wrap gap-6 items-end bg-white">
+      <Card className="p-4 border-slate-200/60 shadow-sm flex flex-wrap gap-6 items-end bg-white print:hidden">
         <div className="grid gap-1.5 w-full sm:w-[280px]">
           <label className="text-xs font-medium text-slate-500">Agência Parceira</label>
           <Select value={selectedAgency} onValueChange={setSelectedAgency}>
@@ -182,6 +195,24 @@ export default function Finance() {
         </div>
       </Card>
 
+      {/* Header visível apenas na impressão */}
+      <div className="hidden print:block mb-8">
+        <h1 className="text-2xl font-bold">Relatório de Faturamento</h1>
+        <div className="text-sm text-slate-600 mt-2">
+          <p>
+            <strong>Agência:</strong>{' '}
+            {agencies.find((a) => a.id.toString() === selectedAgency)?.nome_fantasia || '-'}
+          </p>
+          <p>
+            <strong>Período:</strong> {selectedPeriod}
+          </p>
+          <p>
+            <strong>Status do Lote:</strong>{' '}
+            {isAllLocked ? 'FECHADO E TRAVADO' : 'RASCUNHO / ABERTO'}
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-slate-200/60 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -214,7 +245,7 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">{totais.count}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 print:hidden">
               Itens vigentes no período ({lancamentosNaoTravados.length} destravados)
             </p>
           </CardContent>
@@ -222,13 +253,13 @@ export default function Finance() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="print:hidden">
           <CardTitle>Detalhamento</CardTitle>
           <CardDescription>
             Exibindo apenas os lançamentos mais recentes (vigentes) de cada voucher.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="print:p-0">
           {isLoading ? (
             <div className="h-32 flex items-center justify-center text-slate-500">
               Carregando dados financeiros...
@@ -248,7 +279,7 @@ export default function Finance() {
                   <TableHead className="text-right">Taxa</TableHead>
                   <TableHead className="text-right">Comissão</TableHead>
                   <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
+                  <TableHead className="text-right print:hidden">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,8 +301,8 @@ export default function Finance() {
                         variant="outline"
                         className={
                           l.tipo_lancamento === 'ESTORNO'
-                            ? 'border-red-200 text-red-700 bg-red-50'
-                            : 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                            ? 'border-red-200 text-red-700 bg-red-50 print:border-black print:text-black print:bg-transparent'
+                            : 'border-emerald-200 text-emerald-700 bg-emerald-50 print:border-black print:text-black print:bg-transparent'
                         }
                       >
                         {l.tipo_lancamento}
@@ -291,14 +322,14 @@ export default function Finance() {
                         {l.fatura_travada ? (
                           <Badge
                             variant="secondary"
-                            className="bg-slate-100 text-slate-600 text-[10px]"
+                            className="bg-slate-100 text-slate-600 text-[10px] print:border-black print:bg-transparent"
                           >
-                            <Lock className="w-3 h-3 mr-1" /> Travado
+                            <Lock className="w-3 h-3 mr-1 print:hidden" /> Travado
                           </Badge>
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-slate-200 text-slate-500"
+                            className="text-[10px] border-slate-200 text-slate-500 print:border-black print:bg-transparent print:text-black"
                           >
                             Aberto
                           </Badge>
@@ -309,13 +340,13 @@ export default function Finance() {
                             l.status_quitacao === 'QUITADO'
                               ? 'border-blue-200 text-blue-700 bg-blue-50'
                               : 'border-amber-200 text-amber-700 bg-amber-50'
-                          }`}
+                          } print:border-black print:bg-transparent print:text-black`}
                         >
                           {l.status_quitacao || 'PENDENTE'}
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right print:hidden">
                       <Button
                         variant="ghost"
                         size="sm"

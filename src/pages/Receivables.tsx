@@ -22,7 +22,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { IAgencia, ILancamentoFaturamento } from '@/domain/contracts'
-import { CheckCircle2, Wallet, Receipt } from 'lucide-react'
+import { CheckCircle2, Wallet, Receipt, Printer } from 'lucide-react'
+import { PrintWatermark } from '@/components/PrintWatermark'
 
 export default function Receivables() {
   const { session } = useTenant()
@@ -124,6 +125,10 @@ export default function Receivables() {
     }
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   const formatCurrency = (val: number, cur: string) => {
     return new Intl.NumberFormat(cur === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -131,18 +136,26 @@ export default function Receivables() {
     }).format(val)
   }
 
+  const isAllQuitados =
+    groupedVouchers.length > 0 && groupedVouchers.every((g) => g.status_quitacao === 'QUITADO')
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
+    <div className="space-y-6 relative">
+      <PrintWatermark locked={isAllQuitados} />
+
+      <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Valores a Receber</h1>
           <p className="mt-1 text-muted-foreground">
             Gestão de contas a receber e quitação de vouchers pendentes ({session?.pais_ativo})
           </p>
         </div>
+        <Button variant="outline" onClick={handlePrint} className="gap-2">
+          <Printer className="h-4 w-4" /> Exportar PDF
+        </Button>
       </div>
 
-      <Card className="p-4 border-slate-200/60 shadow-sm flex flex-wrap gap-6 items-end bg-white">
+      <Card className="p-4 border-slate-200/60 shadow-sm flex flex-wrap gap-6 items-end bg-white print:hidden">
         <div className="grid gap-1.5 w-full sm:w-[240px]">
           <label className="text-xs font-medium text-slate-500">Agência Parceira</label>
           <Select value={selectedAgency} onValueChange={setSelectedAgency}>
@@ -196,12 +209,28 @@ export default function Receivables() {
         </div>
       </Card>
 
+      <div className="hidden print:block mb-8">
+        <h1 className="text-2xl font-bold">Relatório de Valores a Receber</h1>
+        <div className="text-sm text-slate-600 mt-2">
+          <p>
+            <strong>Período Filtrado:</strong> {selectedPeriod || 'Todos'}
+          </p>
+          <p>
+            <strong>Moeda:</strong> {selectedMoeda === 'all' ? 'Todas' : selectedMoeda}
+          </p>
+          <p>
+            <strong>Status Geral:</strong>{' '}
+            {isAllQuitados ? 'TOTALMENTE QUITADO' : 'PENDÊNCIAS ABERTAS'}
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         {Object.entries(totais).map(([moeda, valores]) => (
           <Card key={moeda} className="border-slate-200/60 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-slate-600">Total {moeda}</CardTitle>
-              <Wallet className="h-4 w-4 text-emerald-600" />
+              <Wallet className="h-4 w-4 text-emerald-600 print:hidden" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
@@ -218,25 +247,24 @@ export default function Receivables() {
           <Card className="border-slate-200/60 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-slate-600">Resumo</CardTitle>
-              <Receipt className="h-4 w-4 text-slate-400" />
+              <Receipt className="h-4 w-4 text-slate-400 print:hidden" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">R$ 0,00</div>
-              <p className="text-xs text-muted-foreground mt-1">Sem valores pendentes</p>
+              <p className="text-xs text-muted-foreground mt-1">Sem valores na visão</p>
             </CardContent>
           </Card>
         )}
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="print:hidden">
           <CardTitle>Comissões a Receber (Por Voucher)</CardTitle>
           <CardDescription>
-            Listagem da maior versão vigente. A quitação é feita em lote para todas as comissões do
-            voucher.
+            Listagem da maior versão vigente. A quitação é feita em lote.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="print:p-0">
           {isLoading ? (
             <div className="h-32 flex items-center justify-center text-slate-500">
               Carregando dados...
@@ -254,7 +282,7 @@ export default function Receivables() {
                   <TableHead className="text-right">Base Bruta</TableHead>
                   <TableHead className="text-right">Comissões (Soma)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
+                  <TableHead className="text-right print:hidden">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -264,7 +292,7 @@ export default function Receivables() {
                       {g.voucher_code}{' '}
                       <span className="text-xs text-slate-400">v{g.versao_calculo}</span>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600 truncate max-w-[200px]">
+                    <TableCell className="text-sm text-slate-600 truncate max-w-[200px] print:whitespace-normal print:break-words">
                       {g.agencias}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-slate-600">
@@ -280,12 +308,12 @@ export default function Receivables() {
                           g.status_quitacao === 'QUITADO'
                             ? 'border-blue-200 text-blue-700 bg-blue-50'
                             : 'border-amber-200 text-amber-700 bg-amber-50'
-                        }`}
+                        } print:border-black print:text-black print:bg-transparent`}
                       >
                         {g.status_quitacao}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right print:hidden">
                       <Button
                         variant="outline"
                         size="sm"
@@ -298,7 +326,7 @@ export default function Receivables() {
                         }
                       >
                         <CheckCircle2 className="w-4 h-4 mr-1" />
-                        {g.status_quitacao === 'QUITADO' ? 'Resolvido' : 'Quitar Voucher'}
+                        {g.status_quitacao === 'QUITADO' ? 'Resolvido' : 'Quitar'}
                       </Button>
                     </TableCell>
                   </TableRow>

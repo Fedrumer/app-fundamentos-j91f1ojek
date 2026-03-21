@@ -98,6 +98,35 @@ export interface IExtratoPreVenda {
   data_movimento: string
 }
 
+export interface IDashboardStats {
+  totaisPorMoeda: Record<
+    string,
+    { amountPaid: number; comissao: number; liquido: number; valoresReceber: number }
+  >
+  totalVouchers: number
+  totalPreVenda: number
+  agenciasAtivas: number
+  totalCortesias: number
+  evolucaoDiaria: { data: string; valor: number; moeda: string }[]
+  distribuicaoCanal: { name: string; value: number }[]
+}
+
+export interface IIngestaoLog {
+  id: string
+  data_ingestao: string
+  status: string
+  quantidade_registros: number
+  quantidade_falhadas: number
+  mensagem_erro: string
+}
+
+export interface IAlerta {
+  id: string
+  tipo: 'INGESTAO' | 'CURRENTACCOUNT' | 'DISCREPANCIA'
+  mensagem: string
+  data: string
+}
+
 export interface IUsersRepo {
   login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession>
   getUsers(pais: 'BR' | 'AR'): Promise<any[]>
@@ -143,6 +172,9 @@ export interface IFinanceiroRepo {
     crescimento: number
     moeda: string
   }>
+  getDashboardCompleto(pais: 'BR' | 'AR'): Promise<IDashboardStats>
+  getIngestions(pais: 'BR' | 'AR'): Promise<IIngestaoLog[]>
+  getAlerts(pais: 'BR' | 'AR'): Promise<IAlerta[]>
   getTransacoes(pais: 'BR' | 'AR'): Promise<any[]>
   getLancamentosVigentes(
     pais: 'BR' | 'AR',
