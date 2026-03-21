@@ -10,6 +10,7 @@ import {
   IAgencia,
   IProductGroup,
   IProductVariation,
+  ILancamentoFaturamento,
 } from '@/domain/contracts'
 
 export class UsersRepoSupabase implements IUsersRepo {
@@ -449,5 +450,83 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
       tipo: t.tipo || 'Desconhecido',
       pais_ativo: t.pais,
     }))
+  }
+
+  async getLancamentosVigentes(
+    pais: 'BR' | 'AR',
+    filtros: { id_agencia?: string; periodo?: string },
+  ): Promise<ILancamentoFaturamento[]> {
+    let query = supabase.from('faturamento_vigente').select('*').eq('pais', pais)
+
+    if (filtros.id_agencia) {
+      query = query.eq('id_agencia_recebedora', filtros.id_agencia)
+    }
+    if (filtros.periodo) {
+      query = query.eq('periodo_apuracao', filtros.periodo)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw new Error(error.message)
+
+    return data.map((d: any) => ({
+      id: d.id,
+      id_voucher: d.id_voucher,
+      voucher_code: d.voucher_code || '',
+      versao_calculo: d.versao_calculo,
+      id_agencia_recebedora: d.id_agencia_recebedora,
+      agencia_recebedora_nome: d.agencia_recebedora_nome || 'Desconhecida',
+      pais: d.pais as 'BR' | 'AR',
+      tipo_lancamento: d.tipo_lancamento || '',
+      tipo_comissao: d.tipo_comissao || '',
+      percentual_aplicado: d.percentual_aplicado || 0,
+      valor_bruto: d.valor_bruto || 0,
+      comissao: d.comissao || 0,
+      valor_repasse: d.valor_repasse || 0,
+      moeda: d.moeda || 'USD',
+      periodo_apuracao: d.periodo_apuracao || '',
+      id_fatura: d.id_fatura,
+      fatura_travada: d.fatura_travada || false,
+      status_quitacao: d.status_quitacao || 'PENDENTE',
+    }))
+  }
+
+  async travarFatura(
+    pais: 'BR' | 'AR',
+    id_agencia: string,
+    periodo: string,
+    ids_lancamentos: string[],
+  ): Promise<void> {
+    if (!ids_lancamentos || ids_lancamentos.length === 0) return
+
+    const { data: fatura, error: fError } = await supabase
+      .from('faturas')
+      .insert({
+        id_agencia: id_agencia,
+        pais: pais,
+        status: 'FECHADA',
+        status_lock: true,
+        data_corte: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (fError) throw new Error('Erro ao criar fatura: ' + fError.message)
+
+    const { error: updError } = await supabase
+      .from('faturamento_net')
+      .update({ id_fatura: fatura.id })
+      .in('id', ids_lancamentos)
+
+    if (updError) throw new Error('Erro ao vincular lançamentos: ' + updError.message)
+  }
+
+  async quitarLancamento(id_lancamento: string): Promise<void> {
+    const { error } = await supabase
+      .from('faturamento_net')
+      .update({ status_quitacao: 'QUITADO' })
+      .eq('id', id_lancamento)
+
+    if (error) throw new Error('Erro ao quitar lançamento: ' + error.message)
   }
 }

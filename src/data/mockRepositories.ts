@@ -9,6 +9,7 @@ import {
   IAgencia,
   IProductGroup,
   IProductVariation,
+  ILancamentoFaturamento,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -152,10 +153,51 @@ let mockVariations: IProductVariation[] = [
   },
 ]
 
+let mockLancamentosFaturamento: ILancamentoFaturamento[] = [
+  {
+    id: 'L-1',
+    id_voucher: 'v1',
+    voucher_code: 'V-1002',
+    versao_calculo: 1,
+    id_agencia_recebedora: 101,
+    agencia_recebedora_nome: 'Agência São Paulo',
+    pais: 'BR',
+    tipo_lancamento: 'COMISSAO',
+    tipo_comissao: 'DIRETA',
+    percentual_aplicado: 15,
+    valor_bruto: 2300,
+    comissao: 345,
+    valor_repasse: 1955,
+    moeda: 'BRL',
+    periodo_apuracao: '2023-10',
+    fatura_travada: false,
+    status_quitacao: 'PENDENTE',
+  },
+  {
+    id: 'L-2',
+    id_voucher: 'v2',
+    voucher_code: 'V-1003',
+    versao_calculo: 1,
+    id_agencia_recebedora: 101,
+    agencia_recebedora_nome: 'Agência São Paulo',
+    pais: 'BR',
+    tipo_lancamento: 'ESTORNO',
+    tipo_comissao: 'DIRETA',
+    percentual_aplicado: -15,
+    valor_bruto: -1000,
+    comissao: -150,
+    valor_repasse: -850,
+    moeda: 'BRL',
+    periodo_apuracao: '2023-10',
+    fatura_travada: false,
+    status_quitacao: 'PENDENTE',
+  },
+]
+
 export class UsersRepoMock implements IUsersRepo {
   async login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession> {
     await new Promise((r) => setTimeout(r, 400))
-    if (email === 'admin@now.com' && senha === 'senha123')
+    if (email === 'admin@now.com' && senha === 'Teste123!')
       return {
         usuario: 'Administrador Global',
         nivel: 'Master',
@@ -164,7 +206,7 @@ export class UsersRepoMock implements IUsersRepo {
         perfil_admin: true,
         moeda_padrao: pais === 'AR' ? 'ARS' : 'BRL',
       }
-    if (email === 'teste_br@now.com' && senha === 'senha123')
+    if (email === 'teste_br@now.com' && senha === 'Teste123!')
       return {
         usuario: 'Operador Brasil',
         nivel: 'Operacional',
@@ -173,7 +215,7 @@ export class UsersRepoMock implements IUsersRepo {
         perfil_admin: false,
         moeda_padrao: 'BRL',
       }
-    if (email === 'teste_ar@now.com' && senha === 'senha123')
+    if (email === 'teste_ar@now.com' && senha === 'Teste123!')
       return {
         usuario: 'Operador Argentina',
         nivel: 'Operacional',
@@ -302,5 +344,38 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
     return pais === 'BR'
       ? [{ id: 'T1', data: '2023-10-01', valor: 500, tipo: 'Entrada' }]
       : [{ id: 'T3', data: '2023-10-01', valor: 15000, tipo: 'Entrada' }]
+  }
+
+  async getLancamentosVigentes(
+    pais: 'BR' | 'AR',
+    filtros: { id_agencia?: string; periodo?: string },
+  ) {
+    await new Promise((r) => setTimeout(r, 300))
+    return mockLancamentosFaturamento.filter((l) => {
+      if (l.pais !== pais) return false
+      if (filtros.id_agencia && l.id_agencia_recebedora.toString() !== filtros.id_agencia)
+        return false
+      if (filtros.periodo && l.periodo_apuracao !== filtros.periodo) return false
+      return true
+    })
+  }
+
+  async travarFatura(
+    pais: 'BR' | 'AR',
+    id_agencia: string,
+    periodo: string,
+    ids_lancamentos: string[],
+  ) {
+    await new Promise((r) => setTimeout(r, 500))
+    mockLancamentosFaturamento = mockLancamentosFaturamento.map((l) =>
+      ids_lancamentos.includes(l.id) ? { ...l, fatura_travada: true, id_fatura: 'F-MOCK' } : l,
+    )
+  }
+
+  async quitarLancamento(id_lancamento: string) {
+    await new Promise((r) => setTimeout(r, 300))
+    mockLancamentosFaturamento = mockLancamentosFaturamento.map((l) =>
+      l.id === id_lancamento ? { ...l, status_quitacao: 'QUITADO' } : l,
+    )
   }
 }

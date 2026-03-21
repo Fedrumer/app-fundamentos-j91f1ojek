@@ -52,6 +52,27 @@ export interface IProductVariation {
   preco: number
 }
 
+export interface ILancamentoFaturamento {
+  id: string
+  id_voucher: string
+  voucher_code: string
+  versao_calculo: number
+  id_agencia_recebedora: string | number
+  agencia_recebedora_nome: string
+  pais: 'BR' | 'AR'
+  tipo_lancamento: string
+  tipo_comissao: string
+  percentual_aplicado: number
+  valor_bruto: number
+  comissao: number
+  valor_repasse: number
+  moeda: string
+  periodo_apuracao: string
+  id_fatura?: string
+  fatura_travada?: boolean
+  status_quitacao?: string
+}
+
 export interface IUsersRepo {
   login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession>
   getUsers(pais: 'BR' | 'AR'): Promise<any[]>
@@ -98,4 +119,15 @@ export interface IFinanceiroRepo {
     moeda: string
   }>
   getTransacoes(pais: 'BR' | 'AR'): Promise<any[]>
+  getLancamentosVigentes(
+    pais: 'BR' | 'AR',
+    filtros: { id_agencia?: string; periodo?: string },
+  ): Promise<ILancamentoFaturamento[]>
+  travarFatura(
+    pais: 'BR' | 'AR',
+    id_agencia: string,
+    periodo: string,
+    ids_lancamentos: string[],
+  ): Promise<void>
+  quitarLancamento(id_lancamento: string): Promise<void>
 }
