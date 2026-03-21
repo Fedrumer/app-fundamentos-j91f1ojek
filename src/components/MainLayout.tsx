@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 
 const navLinks = [
   { name: 'Dashboard', path: '/' },
-  { name: 'Vendas', path: '/vouchers' },
+  { name: 'Vendas', path: '/vendas' },
   { name: 'Agências', path: '/agencias' },
   { name: 'Produtos', path: '/produtos' },
   { name: 'Faturamento', path: '/financeiro' },
@@ -51,7 +51,6 @@ export default function MainLayout() {
       <div className="flex min-h-screen w-full flex-col bg-slate-50">
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white px-4 shadow-sm md:px-6">
           <div className="flex items-center gap-4">
-            {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
@@ -88,7 +87,6 @@ export default function MainLayout() {
               <span className="text-xl font-bold tracking-tight text-primary">Now Assistance</span>
             </Link>
 
-            {/* Desktop Nav */}
             <nav className="hidden md:ml-6 md:flex md:items-center md:gap-1 lg:gap-2">
               {navLinks.map((link) => (
                 <Link
@@ -108,7 +106,6 @@ export default function MainLayout() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Tenant Dynamic Badge */}
             <Badge
               className={cn(
                 'hidden px-2.5 py-0.5 text-xs font-semibold sm:inline-flex',
@@ -120,7 +117,6 @@ export default function MainLayout() {
               {session.pais_ativo === 'BR' ? '🇧🇷 Brasil' : '🇦🇷 Argentina'}
             </Badge>
 
-            {/* User Profile & Tenant Switch */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative ml-2 h-9 w-9 rounded-full">
@@ -138,9 +134,7 @@ export default function MainLayout() {
                     <p className="text-xs leading-none text-muted-foreground">{session.nivel}</p>
                   </div>
                 </DropdownMenuLabel>
-
                 <DropdownMenuSeparator />
-
                 {session.perfil_admin && (
                   <>
                     <DropdownMenuSub>
@@ -172,7 +166,6 @@ export default function MainLayout() {
                     <DropdownMenuSeparator />
                   </>
                 )}
-
                 <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600"
@@ -187,7 +180,6 @@ export default function MainLayout() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-300 p-4 md:p-6 lg:p-8">
-            {/* The key property forces unmount/remount on tenant change, resetting all inner state */}
             <Outlet key={session.pais_ativo} />
           </div>
         </main>

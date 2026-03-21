@@ -12,7 +12,7 @@ import Login from './pages/Login'
 import Index from './pages/Index'
 import Users from './pages/Users'
 import Agencies from './pages/Agencies'
-import Vouchers from './pages/Vouchers'
+import Vendas from './pages/Vendas'
 import Products from './pages/Products'
 import Finance from './pages/Finance'
 
@@ -30,7 +30,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/usuarios" element={<Users />} />
               <Route path="/agencias" element={<Agencies />} />
-              <Route path="/vouchers" element={<Vouchers />} />
+              <Route path="/vendas" element={<Vendas />} />
               <Route path="/produtos" element={<Products />} />
               <Route path="/financeiro" element={<Finance />} />
             </Route>
