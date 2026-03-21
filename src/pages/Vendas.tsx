@@ -32,17 +32,20 @@ import { Input } from '@/components/ui/input'
 import { useFilteredData } from '@/hooks/useFilteredData'
 import { useToast } from '@/hooks/use-toast'
 import { Edit, RefreshCw } from 'lucide-react'
-import { IVoucherData, IAgencia } from '@/domain/contracts'
+import { IVoucherData, IAgencia, IProductGroup } from '@/domain/contracts'
+import { VendasComissaoAdapter } from '@/components/VendasComissaoAdapter'
 
 export default function Vendas() {
   const { session } = useTenant()
-  const { vouchersRepo, agenciasRepo } = useRepositories()
+  const { vouchersRepo, agenciasRepo, produtosRepo } = useRepositories()
   const { toast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [vouchers, setVouchers] = useState<IVoucherData[]>([])
   const [agencies, setAgencies] = useState<IAgencia[]>([])
+  const [productGroups, setProductGroups] = useState<IProductGroup[]>([])
   const [editingVoucher, setEditingVoucher] = useState<IVoucherData | null>(null)
+  const [viewingCommission, setViewingCommission] = useState<IVoucherData | null>(null)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>('')
 
   const st = searchParams.get('status') || 'all'
@@ -53,17 +56,19 @@ export default function Vendas() {
 
   const loadData = async () => {
     if (!session) return
-    const [vData, aData] = await Promise.all([
+    const [vData, aData, pData] = await Promise.all([
       vouchersRepo.getVouchers(session.pais_ativo),
       agenciasRepo.getAgencias(session.pais_ativo),
+      produtosRepo.getGroups(session.pais_ativo),
     ])
     setVouchers(vData)
     setAgencies(aData)
+    setProductGroups(pData)
   }
 
   useEffect(() => {
     loadData()
-  }, [session?.pais_ativo, vouchersRepo, agenciasRepo])
+  }, [session?.pais_ativo, vouchersRepo, agenciasRepo, produtosRepo])
 
   const filteredData = useFilteredData(vouchers).filter((v) => {
     if (st !== 'all' && v.status_voucher !== st) return false
@@ -106,8 +111,19 @@ export default function Vendas() {
       style: 'currency',
       currency: cur,
     }).format(val)
+
   const getStatus = (s: string) =>
     ({ ISSUED: 'Emitido', USED: 'Utilizado', CANCELLED: 'Cancelado' })[s] || s
+
+  // Pega um grupo de produto padrão para exibir regras de cálculo (pois voucher não especifica o grupo de origem na listagem simples)
+  const defaultProductGroup = productGroups[0] || {
+    id: 1,
+    nome: 'Geral Padrão',
+    comissao_maxima: 20,
+    moeda_cadastro: session?.moeda_padrao || 'BRL',
+    flags: [],
+    pais_ativo: session?.pais_ativo || 'BR',
+  }
 
   return (
     <div className="space-y-6">
@@ -225,19 +241,30 @@ export default function Vendas() {
                     {fmtCurrency(v.amount_paid, v.moeda_monto)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={v.tipo_canal_atual !== 'B2C'}
-                      onClick={() => setEditingVoucher(v)}
-                      className={
-                        v.tipo_canal_atual === 'B2C'
-                          ? 'border-primary text-primary hover:bg-primary/5'
-                          : ''
-                      }
-                    >
-                      <Edit className="h-4 w-4 mr-1.5" /> Editar Agência
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewingCommission(v)}
+                        className="text-slate-600 hover:text-slate-900 hidden sm:flex"
+                      >
+                        Comissão
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={v.tipo_canal_atual !== 'B2C'}
+                        onClick={() => setEditingVoucher(v)}
+                        className={
+                          v.tipo_canal_atual === 'B2C'
+                            ? 'border-primary text-primary hover:bg-primary/5'
+                            : ''
+                        }
+                      >
+                        <Edit className="h-4 w-4 sm:mr-1.5" />{' '}
+                        <span className="hidden sm:inline">Editar</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -272,6 +299,31 @@ export default function Vendas() {
               Cancelar
             </Button>
             <Button onClick={handleSaveAgency}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewingCommission} onOpenChange={(o) => !o && setViewingCommission(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhamento de Comissão</DialogTitle>
+            <DialogDescription>
+              Voucher: <span className="font-mono">{viewingCommission?.voucher_code}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingCommission && (
+            <VendasComissaoAdapter
+              voucher={viewingCommission}
+              cadeia={agencies}
+              grupo={defaultProductGroup}
+            />
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingCommission(null)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
