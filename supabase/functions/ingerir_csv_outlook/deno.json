@@ -1,6 +1,5 @@
 {
   "imports": {
-    "papaparse": "npm:papaparse@5.4.1",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.45.0"
+    "papaparse": "npm:papaparse@5.4.1"
   }
 }
