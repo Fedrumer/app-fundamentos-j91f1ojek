@@ -34,6 +34,24 @@ export interface IAgencia {
   status: string
 }
 
+export interface IProductGroup {
+  id: string | number
+  nome: string
+  comissao_maxima: number
+  moeda_cadastro: string
+  flags: string[]
+  pais_ativo: 'BR' | 'AR'
+}
+
+export interface IProductVariation {
+  id: string | number
+  id_grupo: string | number
+  nome: string
+  destino: string
+  faixa_etaria: string
+  preco: number
+}
+
 export interface IUsersRepo {
   login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession>
   getUsers(pais: 'BR' | 'AR'): Promise<any[]>
@@ -54,7 +72,18 @@ export interface IVouchersRepo {
 }
 
 export interface IProdutosRepo {
-  getProdutos(pais: 'BR' | 'AR'): Promise<any[]>
+  getGroups(pais: 'BR' | 'AR'): Promise<IProductGroup[]>
+  addGroup(group: Omit<IProductGroup, 'id'>): Promise<IProductGroup>
+  updateGroup(id: string | number, group: Partial<IProductGroup>): Promise<IProductGroup>
+  deleteGroup(id: string | number): Promise<void>
+
+  getVariations(id_grupo: string | number): Promise<IProductVariation[]>
+  addVariation(variation: Omit<IProductVariation, 'id'>): Promise<IProductVariation>
+  updateVariation(
+    id: string | number,
+    variation: Partial<IProductVariation>,
+  ): Promise<IProductVariation>
+  deleteVariation(id: string | number): Promise<void>
 }
 
 export interface IFinanceiroRepo {
