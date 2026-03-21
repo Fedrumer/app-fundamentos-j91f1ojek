@@ -32,7 +32,7 @@ import { Input } from '@/components/ui/input'
 import { useFilteredData } from '@/hooks/useFilteredData'
 import { useToast } from '@/hooks/use-toast'
 import { Edit, RefreshCw } from 'lucide-react'
-import { IVoucherData } from '@/domain/contracts'
+import { IVoucherData, IAgencia } from '@/domain/contracts'
 
 export default function Vendas() {
   const { session } = useTenant()
@@ -41,7 +41,7 @@ export default function Vendas() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [vouchers, setVouchers] = useState<IVoucherData[]>([])
-  const [agencies, setAgencies] = useState<any[]>([])
+  const [agencies, setAgencies] = useState<IAgencia[]>([])
   const [editingVoucher, setEditingVoucher] = useState<IVoucherData | null>(null)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>('')
 
@@ -90,7 +90,11 @@ export default function Vendas() {
     if (!editingVoucher || !selectedAgencyId) return
     const agObj = agencies.find((a) => a.id.toString() === selectedAgencyId)
     if (agObj) {
-      await vouchersRepo.reprocessarVoucher(editingVoucher.voucher_code, agObj.id, agObj.nome)
+      await vouchersRepo.reprocessarVoucher(
+        editingVoucher.voucher_code,
+        Number(agObj.id),
+        agObj.nome_fantasia,
+      )
       await loadData()
       setEditingVoucher(null)
       toast({ title: 'Voucher atualizado', description: 'O voucher foi atribuído e reprocessado.' })
@@ -144,7 +148,7 @@ export default function Vendas() {
               <SelectItem value="all">Todas</SelectItem>
               {agencies.map((a) => (
                 <SelectItem key={a.id} value={a.id.toString()}>
-                  {a.nome}
+                  {a.nome_fantasia}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -257,7 +261,7 @@ export default function Vendas() {
               <SelectContent>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id.toString()}>
-                    {a.nome}
+                    {a.nome_fantasia}
                   </SelectItem>
                 ))}
               </SelectContent>

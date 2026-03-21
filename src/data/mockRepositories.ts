@@ -6,6 +6,7 @@ import {
   IUsersRepo,
   IVouchersRepo,
   IVoucherData,
+  IAgencia,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -76,6 +77,43 @@ let mockVouchersData: IVoucherData[] = [
   },
 ]
 
+let mockAgenciasList: IAgencia[] = [
+  {
+    id: 101,
+    codigo: 'AG-BR-01',
+    nome_fantasia: 'Agência São Paulo',
+    nome_legal: 'Agência SP S.A.',
+    nivel: 1,
+    comissao: 15,
+    moeda: 'BRL',
+    pais_ativo: 'BR',
+    status: 'Ativa',
+  },
+  {
+    id: 102,
+    codigo: 'AG-BR-02',
+    nome_fantasia: 'Agência Rio',
+    nome_legal: 'Agência RJ LTDA',
+    nivel: 2,
+    id_agencia_pai: 101,
+    comissao: 10,
+    moeda: 'BRL',
+    pais_ativo: 'BR',
+    status: 'Ativa',
+  },
+  {
+    id: 202,
+    codigo: 'AG-AR-01',
+    nome_fantasia: 'Agencia Buenos Aires',
+    nome_legal: 'Agencia BA S.A.',
+    nivel: 1,
+    comissao: 20,
+    moeda: 'ARS',
+    pais_ativo: 'AR',
+    status: 'Ativa',
+  },
+]
+
 export class UsersRepoMock implements IUsersRepo {
   async login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession> {
     await new Promise((resolve) => setTimeout(resolve, 600))
@@ -123,13 +161,35 @@ export class UsersRepoMock implements IUsersRepo {
 }
 
 export class AgenciasRepoMock implements IAgenciasRepo {
-  async getAgencias(pais: 'BR' | 'AR'): Promise<any[]> {
-    return pais === 'BR'
-      ? [
-          { id: 101, nome: 'Agência São Paulo', status: 'Ativa' },
-          { id: 102, nome: 'Agência Rio', status: 'Ativa' },
-        ]
-      : [{ id: 202, nome: 'Agencia Buenos Aires', status: 'Ativa' }]
+  async getAgencias(pais: 'BR' | 'AR'): Promise<IAgencia[]> {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    return mockAgenciasList.filter((a) => a.pais_ativo === pais)
+  }
+
+  async addAgencia(agencia: Omit<IAgencia, 'id'>): Promise<IAgencia> {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const nova = { ...agencia, id: Math.floor(Math.random() * 100000) }
+    mockAgenciasList.push(nova as IAgencia)
+    return nova as IAgencia
+  }
+
+  async updateAgencia(id: string | number, agencia: Partial<IAgencia>): Promise<IAgencia> {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const index = mockAgenciasList.findIndex((a) => a.id.toString() === id.toString())
+    if (index > -1) {
+      mockAgenciasList[index] = { ...mockAgenciasList[index], ...agencia }
+      return mockAgenciasList[index]
+    }
+    throw new Error('Agência não encontrada no sistema.')
+  }
+
+  async deleteAgencia(id: string | number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const hasChildren = mockAgenciasList.some((a) => a.id_agencia_pai?.toString() === id.toString())
+    if (hasChildren) {
+      throw new Error('Não é possível excluir uma agência que possui sub-agências associadas.')
+    }
+    mockAgenciasList = mockAgenciasList.filter((a) => a.id.toString() !== id.toString())
   }
 }
 

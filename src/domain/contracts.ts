@@ -21,13 +21,29 @@ export interface IVoucherData {
   data_emissao?: string
 }
 
+export interface IAgencia {
+  id: string | number
+  codigo: string
+  nome_fantasia: string
+  nome_legal: string
+  nivel: number
+  id_agencia_pai?: string | number | null
+  comissao: number
+  moeda: string
+  pais_ativo: 'BR' | 'AR'
+  status: string
+}
+
 export interface IUsersRepo {
   login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession>
   getUsers(pais: 'BR' | 'AR'): Promise<any[]>
 }
 
 export interface IAgenciasRepo {
-  getAgencias(pais: 'BR' | 'AR'): Promise<any[]>
+  getAgencias(pais: 'BR' | 'AR'): Promise<IAgencia[]>
+  addAgencia(agencia: Omit<IAgencia, 'id'>): Promise<IAgencia>
+  updateAgencia(id: string | number, agencia: Partial<IAgencia>): Promise<IAgencia>
+  deleteAgencia(id: string | number): Promise<void>
 }
 
 export interface IVouchersRepo {
