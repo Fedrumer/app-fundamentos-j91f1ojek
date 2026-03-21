@@ -454,7 +454,7 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
 
   async getLancamentosVigentes(
     pais: 'BR' | 'AR',
-    filtros: { id_agencia?: string; periodo?: string },
+    filtros: { id_agencia?: string; periodo?: string; moeda?: string; status_quitacao?: string },
   ): Promise<ILancamentoFaturamento[]> {
     let query = supabase.from('faturamento_vigente').select('*').eq('pais', pais)
 
@@ -463,6 +463,12 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
     }
     if (filtros.periodo) {
       query = query.eq('periodo_apuracao', filtros.periodo)
+    }
+    if (filtros.moeda) {
+      query = query.eq('moeda', filtros.moeda)
+    }
+    if (filtros.status_quitacao) {
+      query = query.eq('status_quitacao', filtros.status_quitacao)
     }
 
     const { data, error } = await query
@@ -528,5 +534,16 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
       .eq('id', id_lancamento)
 
     if (error) throw new Error('Erro ao quitar lançamento: ' + error.message)
+  }
+
+  async quitarLancamentosPorVoucher(id_voucher: string): Promise<void> {
+    const { error } = await supabase
+      .from('faturamento_net')
+      .update({ status_quitacao: 'QUITADO' })
+      .eq('id_voucher', id_voucher)
+      .eq('tipo_lancamento', 'COMISSAO')
+      .neq('status_quitacao', 'QUITADO')
+
+    if (error) throw new Error('Erro ao quitar voucher: ' + error.message)
   }
 }

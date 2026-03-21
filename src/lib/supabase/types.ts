@@ -512,6 +512,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'faturamento_net_id_lancamento_origem_fkey'
+            columns: ['id_lancamento_origem']
+            isOneToOne: false
+            referencedRelation: 'faturamento_vigente'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'faturamento_net_id_voucher_fkey'
             columns: ['id_voucher']
             isOneToOne: false
@@ -1180,6 +1187,84 @@ export type Database = {
       }
     }
     Views: {
+      faturamento_vigente: {
+        Row: {
+          agencia_recebedora_nome: string | null
+          comissao: number | null
+          created_at: string | null
+          data_vencimento_quitacao: string | null
+          fatura_travada: boolean | null
+          id: string | null
+          id_agencia_recebedora: string | null
+          id_agencia_vendedora: string | null
+          id_fatura: string | null
+          id_lancamento_origem: string | null
+          id_voucher: string | null
+          moeda: string | null
+          pais: string | null
+          percentual_aplicado: number | null
+          periodo_apuracao: string | null
+          status_quitacao: string | null
+          tipo_comissao: string | null
+          tipo_lancamento: string | null
+          valor_bruto: number | null
+          valor_moeda_nativa: number | null
+          valor_repasse: number | null
+          versao_calculo: number | null
+          voucher_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'faturamento_net_id_agencia_recebedora_fkey'
+            columns: ['id_agencia_recebedora']
+            isOneToOne: false
+            referencedRelation: 'agencias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_agencia_vendedora_fkey'
+            columns: ['id_agencia_vendedora']
+            isOneToOne: false
+            referencedRelation: 'agencias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_fatura_fkey'
+            columns: ['id_fatura']
+            isOneToOne: false
+            referencedRelation: 'faturas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_lancamento_origem_fkey'
+            columns: ['id_lancamento_origem']
+            isOneToOne: false
+            referencedRelation: 'faturamento_net'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_lancamento_origem_fkey'
+            columns: ['id_lancamento_origem']
+            isOneToOne: false
+            referencedRelation: 'faturamento_vigente'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_voucher_fkey'
+            columns: ['id_voucher']
+            isOneToOne: false
+            referencedRelation: 'vouchers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'faturamento_net_id_voucher_fkey'
+            columns: ['id_voucher']
+            isOneToOne: false
+            referencedRelation: 'vouchers_vigentes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       vouchers_vigentes: {
         Row: {
           agencia_atual: string | null
@@ -1522,6 +1607,30 @@ export const Constants = {
 //   status_quitacao: text (nullable)
 //   data_vencimento_quitacao: timestamp with time zone (nullable)
 //   id_lancamento_origem: uuid (nullable)
+// Table: faturamento_vigente
+//   id: uuid (nullable)
+//   id_voucher: uuid (nullable)
+//   versao_calculo: integer (nullable)
+//   id_agencia_vendedora: uuid (nullable)
+//   id_agencia_recebedora: uuid (nullable)
+//   pais: text (nullable)
+//   tipo_comissao: text (nullable)
+//   tipo_lancamento: text (nullable)
+//   percentual_aplicado: numeric (nullable)
+//   valor_moeda_nativa: numeric (nullable)
+//   moeda: text (nullable)
+//   status_quitacao: text (nullable)
+//   data_vencimento_quitacao: timestamp with time zone (nullable)
+//   id_lancamento_origem: uuid (nullable)
+//   id_fatura: uuid (nullable)
+//   created_at: timestamp with time zone (nullable)
+//   comissao: numeric (nullable)
+//   valor_bruto: numeric (nullable)
+//   valor_repasse: numeric (nullable)
+//   periodo_apuracao: text (nullable)
+//   voucher_code: text (nullable)
+//   agencia_recebedora_nome: text (nullable)
+//   fatura_travada: boolean (nullable)
 // Table: faturas
 //   id: uuid (not null, default: gen_random_uuid())
 //   id_agencia: uuid (not null)

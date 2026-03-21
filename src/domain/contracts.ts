@@ -121,7 +121,7 @@ export interface IFinanceiroRepo {
   getTransacoes(pais: 'BR' | 'AR'): Promise<any[]>
   getLancamentosVigentes(
     pais: 'BR' | 'AR',
-    filtros: { id_agencia?: string; periodo?: string },
+    filtros: { id_agencia?: string; periodo?: string; moeda?: string; status_quitacao?: string },
   ): Promise<ILancamentoFaturamento[]>
   travarFatura(
     pais: 'BR' | 'AR',
@@ -130,4 +130,5 @@ export interface IFinanceiroRepo {
     ids_lancamentos: string[],
   ): Promise<void>
   quitarLancamento(id_lancamento: string): Promise<void>
+  quitarLancamentosPorVoucher(id_voucher: string): Promise<void>
 }

@@ -348,7 +348,7 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
 
   async getLancamentosVigentes(
     pais: 'BR' | 'AR',
-    filtros: { id_agencia?: string; periodo?: string },
+    filtros: { id_agencia?: string; periodo?: string; moeda?: string; status_quitacao?: string },
   ) {
     await new Promise((r) => setTimeout(r, 300))
     return mockLancamentosFaturamento.filter((l) => {
@@ -356,6 +356,8 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
       if (filtros.id_agencia && l.id_agencia_recebedora.toString() !== filtros.id_agencia)
         return false
       if (filtros.periodo && l.periodo_apuracao !== filtros.periodo) return false
+      if (filtros.moeda && l.moeda !== filtros.moeda) return false
+      if (filtros.status_quitacao && l.status_quitacao !== filtros.status_quitacao) return false
       return true
     })
   }
@@ -376,6 +378,15 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
     await new Promise((r) => setTimeout(r, 300))
     mockLancamentosFaturamento = mockLancamentosFaturamento.map((l) =>
       l.id === id_lancamento ? { ...l, status_quitacao: 'QUITADO' } : l,
+    )
+  }
+
+  async quitarLancamentosPorVoucher(id_voucher: string) {
+    await new Promise((r) => setTimeout(r, 300))
+    mockLancamentosFaturamento = mockLancamentosFaturamento.map((l) =>
+      l.id_voucher === id_voucher && l.tipo_lancamento === 'COMISSAO'
+        ? { ...l, status_quitacao: 'QUITADO' }
+        : l,
     )
   }
 }
