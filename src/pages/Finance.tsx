@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { useFilteredData } from '@/hooks/useFilteredData'
 
 export default function Finance() {
   const { session } = useTenant()
@@ -23,6 +24,8 @@ export default function Finance() {
     }
   }, [session?.pais_ativo, financeiroRepo])
 
+  const filteredData = useFilteredData(data)
+
   const formatValue = (v: number) => {
     return new Intl.NumberFormat(session?.moeda_padrao === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -34,7 +37,7 @@ export default function Finance() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Financeiro</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Transações financeiras locais ({session?.pais_ativo})
         </p>
       </div>
@@ -53,14 +56,14 @@ export default function Finance() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {filteredData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.id}</TableCell>
                   <TableCell>{item.data}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                      className="border-emerald-200 bg-emerald-50 text-emerald-700"
                     >
                       {item.tipo}
                     </Badge>

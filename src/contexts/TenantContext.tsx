@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ITenantSession } from '@/domain/contracts'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 interface ITenantContext {
   session: ITenantSession | null
@@ -14,6 +14,7 @@ const TenantContext = createContext<ITenantContext | undefined>(undefined)
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<ITenantSession | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const stored = localStorage.getItem('tenant_session')
@@ -42,6 +43,15 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         pais_ativo: pais,
         moeda_padrao: pais === 'AR' ? 'ARS' : 'BRL',
       })
+
+      // Clear query parameters when country is changed
+      navigate(
+        {
+          pathname: location.pathname,
+          search: '',
+        },
+        { replace: true },
+      )
     }
   }
 

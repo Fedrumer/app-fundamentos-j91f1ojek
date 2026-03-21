@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -6,7 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { RepositoryProvider } from './contexts/RepositoryContext'
 import { TenantProvider } from './contexts/TenantContext'
 
-import Layout from './components/Layout'
+import MainLayout from './components/MainLayout'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Index from './pages/Index'
@@ -26,7 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
 
-            <Route element={<Layout />}>
+            <Route element={<MainLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/usuarios" element={<Users />} />
               <Route path="/agencias" element={<Agencies />} />

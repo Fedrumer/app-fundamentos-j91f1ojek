@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { useFilteredData } from '@/hooks/useFilteredData'
 
 export default function Agencies() {
   const { session } = useTenant()
@@ -23,11 +24,13 @@ export default function Agencies() {
     }
   }, [session?.pais_ativo, agenciasRepo])
 
+  const filteredData = useFilteredData(data)
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Agências Parceiras</h1>
-        <p className="text-muted-foreground mt-1">Rede de distribuição ({session?.pais_ativo})</p>
+        <p className="mt-1 text-muted-foreground">Rede de distribuição ({session?.pais_ativo})</p>
       </div>
       <Card>
         <CardHeader>
@@ -43,14 +46,14 @@ export default function Agencies() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {filteredData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-muted-foreground">{item.id}</TableCell>
                   <TableCell className="font-medium">{item.nome}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                      className="border-emerald-200 bg-emerald-50 text-emerald-700"
                     >
                       {item.status}
                     </Badge>

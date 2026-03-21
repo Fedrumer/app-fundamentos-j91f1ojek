@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useFilteredData } from '@/hooks/useFilteredData'
 
 export default function Products() {
   const { session } = useTenant()
@@ -22,6 +23,8 @@ export default function Products() {
     }
   }, [session?.pais_ativo, produtosRepo])
 
+  const filteredData = useFilteredData(data)
+
   const formatValue = (v: number) => {
     return new Intl.NumberFormat(session?.moeda_padrao === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -33,7 +36,7 @@ export default function Products() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Produtos</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Catálogo de pacotes e produtos ({session?.pais_ativo})
         </p>
       </div>
@@ -51,7 +54,7 @@ export default function Products() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {filteredData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono text-slate-500">{item.id}</TableCell>
                   <TableCell className="font-medium">{item.nome}</TableCell>

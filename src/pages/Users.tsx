@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useFilteredData } from '@/hooks/useFilteredData'
 
 export default function Users() {
   const { session } = useTenant()
@@ -28,11 +29,13 @@ export default function Users() {
     }
   }, [session?.pais_ativo, usersRepo])
 
+  const filteredData = useFilteredData(data)
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Usuários</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Gerenciamento de acessos da região {session?.pais_ativo}
         </p>
       </div>
@@ -57,7 +60,7 @@ export default function Users() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((item) => (
+                {filteredData.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-mono">{item.id}</TableCell>
                     <TableCell className="font-medium">{item.nome}</TableCell>

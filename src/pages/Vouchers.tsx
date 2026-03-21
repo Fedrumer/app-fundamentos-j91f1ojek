@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { useFilteredData } from '@/hooks/useFilteredData'
 
 export default function Vouchers() {
   const { session } = useTenant()
@@ -23,6 +24,8 @@ export default function Vouchers() {
     }
   }, [session?.pais_ativo, vouchersRepo])
 
+  const filteredData = useFilteredData(data)
+
   const formatValue = (v: number) => {
     return new Intl.NumberFormat(session?.moeda_padrao === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
@@ -34,7 +37,7 @@ export default function Vouchers() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Vouchers</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Cupons emitidos no país ativo ({session?.pais_ativo})
         </p>
       </div>
@@ -53,7 +56,7 @@ export default function Vouchers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item) => (
+              {filteredData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-mono font-medium">{item.id}</TableCell>
                   <TableCell>{item.cliente}</TableCell>
