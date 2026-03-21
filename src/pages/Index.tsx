@@ -118,7 +118,7 @@ export default function Index() {
                 {formatCurrency(stats.receitaTotal, stats.moeda)}
               </div>
             )}
-            <p className="mt-1 flex items-center text-xs text-muted-foreground">
+            <div className="mt-1 flex items-center text-xs text-muted-foreground">
               {isLoading || !stats ? (
                 <Skeleton className="h-4 w-[60px]" />
               ) : (
@@ -128,7 +128,7 @@ export default function Index() {
                   <span className="ml-1">em relação ao mês passado</span>
                 </>
               )}
-            </p>
+            </div>
           </CardContent>
         </Card>
 
