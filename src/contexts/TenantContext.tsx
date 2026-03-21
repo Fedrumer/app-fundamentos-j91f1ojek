@@ -50,6 +50,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               data.perfil_admin && localCountry ? localCountry : (data.pais as 'BR' | 'AR') || 'BR'
 
             return {
+              id_usuario: data.auth_user_id || user.id,
               usuario: data.nome || user.email?.split('@')[0] || 'Usuário',
               nivel: data.nivel || 'Regional',
               id_agencia: data.id_agencia || 0,
@@ -63,6 +64,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           })
         } else {
           setSession({
+            id_usuario: user.id,
             usuario: user.email?.split('@')[0] || 'Usuário',
             nivel: 'Desconhecido',
             id_agencia: 0,

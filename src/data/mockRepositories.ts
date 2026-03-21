@@ -10,6 +10,10 @@ import {
   IProductGroup,
   IProductVariation,
   ILancamentoFaturamento,
+  IPreVendaRepo,
+  IClassificacaoRepo,
+  IContratoPreVenda,
+  IExtratoPreVenda,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -194,11 +198,15 @@ let mockLancamentosFaturamento: ILancamentoFaturamento[] = [
   },
 ]
 
+let mockContratos: IContratoPreVenda[] = []
+let mockExtrato: IExtratoPreVenda[] = []
+
 export class UsersRepoMock implements IUsersRepo {
   async login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession> {
     await new Promise((r) => setTimeout(r, 400))
     if (email === 'admin@now.com' && senha === 'Teste123!')
       return {
+        id_usuario: 'user-admin',
         usuario: 'Administrador Global',
         nivel: 'Master',
         id_agencia: 0,
@@ -208,6 +216,7 @@ export class UsersRepoMock implements IUsersRepo {
       }
     if (email === 'teste_br@now.com' && senha === 'Teste123!')
       return {
+        id_usuario: 'user-br',
         usuario: 'Operador Brasil',
         nivel: 'Operacional',
         id_agencia: 101,
@@ -217,6 +226,7 @@ export class UsersRepoMock implements IUsersRepo {
       }
     if (email === 'teste_ar@now.com' && senha === 'Teste123!')
       return {
+        id_usuario: 'user-ar',
         usuario: 'Operador Argentina',
         nivel: 'Operacional',
         id_agencia: 202,
@@ -388,5 +398,67 @@ export class FinanceiroRepoMock implements IFinanceiroRepo {
         ? { ...l, status_quitacao: 'QUITADO' }
         : l,
     )
+  }
+}
+
+export class PreVendaRepoMock implements IPreVendaRepo {
+  async getContratos(pais: 'BR' | 'AR') {
+    return mockContratos.filter((c) => c.pais === pais)
+  }
+  async addContrato(c: any) {
+    mockContratos.push({
+      ...c,
+      id: Math.random().toString(),
+      dias_consumidos: 0,
+      agencia_nome: 'Mock Agência',
+      produto_nome: 'Mock Produto',
+    } as IContratoPreVenda)
+  }
+  async getExtrato(id_contrato: string) {
+    return mockExtrato.filter((e) => e.id_contrato === id_contrato)
+  }
+  async getProdutosLivres(pais: 'BR' | 'AR') {
+    return [{ id: 'p1', nome: 'Produto Padrão ' + pais }]
+  }
+}
+
+export class ClassificacaoRepoMock implements IClassificacaoRepo {
+  async getVouchersZeroAmount(pais: 'BR' | 'AR') {
+    return [
+      {
+        id: 'v1',
+        voucher_code: 'V-ZERO-1',
+        agencia: 'Agência SP',
+        data_emissao: '2023-10-10',
+        passageiros_count: 2,
+        destino: 'Europa',
+        plano: 'Euro Premium',
+        dias_viagem: 10,
+        tipo_zero_amount: 'ZERO_INDEFINIDO',
+      },
+    ]
+  }
+  async reclassificarVoucher(
+    id_voucher: string,
+    tipo_anterior: string | null,
+    tipo_novo: string,
+    motivo: string,
+    id_usuario: string,
+    id_contrato?: string,
+    dias_consumidos?: number,
+  ) {
+    if (id_contrato) {
+      const c = mockContratos.find((x) => x.id === id_contrato)
+      if (c) c.dias_consumidos += dias_consumidos || 0
+      mockExtrato.push({
+        id: Math.random().toString(),
+        id_contrato,
+        id_voucher,
+        voucher_code: 'V-ZERO-1',
+        tipo_movimento: 'DEBITO',
+        dias_consumidos: dias_consumidos || 0,
+        data_movimento: new Date().toISOString(),
+      })
+    }
   }
 }

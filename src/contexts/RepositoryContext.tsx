@@ -5,6 +5,8 @@ import {
   IProdutosRepo,
   IUsersRepo,
   IVouchersRepo,
+  IPreVendaRepo,
+  IClassificacaoRepo,
 } from '@/domain/contracts'
 
 import {
@@ -13,6 +15,8 @@ import {
   ProdutosRepoMock,
   UsersRepoMock,
   VouchersRepoMock,
+  PreVendaRepoMock,
+  ClassificacaoRepoMock,
 } from '@/data/mockRepositories'
 
 import {
@@ -21,6 +25,8 @@ import {
   VouchersRepoSupabase,
   ProdutosRepoSupabase,
   FinanceiroRepoSupabase,
+  PreVendaRepoSupabase,
+  ClassificacaoRepoSupabase,
 } from '@/data/supabaseRepositories'
 
 interface IRepositoryContext {
@@ -29,6 +35,8 @@ interface IRepositoryContext {
   vouchersRepo: IVouchersRepo
   produtosRepo: IProdutosRepo
   financeiroRepo: IFinanceiroRepo
+  preVendaRepo: IPreVendaRepo
+  classificacaoRepo: IClassificacaoRepo
 }
 
 const RepositoryContext = createContext<IRepositoryContext | undefined>(undefined)
@@ -44,6 +52,8 @@ export const RepositoryProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         vouchersRepo: new VouchersRepoMock(),
         produtosRepo: new ProdutosRepoMock(),
         financeiroRepo: new FinanceiroRepoMock(),
+        preVendaRepo: new PreVendaRepoMock(),
+        classificacaoRepo: new ClassificacaoRepoMock(),
       }
     }
 
@@ -53,6 +63,8 @@ export const RepositoryProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       vouchersRepo: new VouchersRepoSupabase(),
       produtosRepo: new ProdutosRepoSupabase(),
       financeiroRepo: new FinanceiroRepoSupabase(),
+      preVendaRepo: new PreVendaRepoSupabase(),
+      classificacaoRepo: new ClassificacaoRepoSupabase(),
     }
   }, [])
 

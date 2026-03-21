@@ -11,6 +11,10 @@ import {
   IProductGroup,
   IProductVariation,
   ILancamentoFaturamento,
+  IPreVendaRepo,
+  IContratoPreVenda,
+  IExtratoPreVenda,
+  IClassificacaoRepo,
 } from '@/domain/contracts'
 
 export class UsersRepoSupabase implements IUsersRepo {
@@ -30,6 +34,7 @@ export class UsersRepoSupabase implements IUsersRepo {
     if (userError || !userData) throw new Error('Usuário não encontrado no banco de dados')
 
     return {
+      id_usuario: userData.auth_user_id || authData.user.id,
       usuario: userData.nome || email.split('@')[0],
       nivel: userData.nivel || 'Regional',
       id_agencia: userData.id_agencia || 0,
@@ -545,5 +550,196 @@ export class FinanceiroRepoSupabase implements IFinanceiroRepo {
       .neq('status_quitacao', 'QUITADO')
 
     if (error) throw new Error('Erro ao quitar voucher: ' + error.message)
+  }
+}
+
+export class PreVendaRepoSupabase implements IPreVendaRepo {
+  async getContratos(pais: 'BR' | 'AR'): Promise<IContratoPreVenda[]> {
+    const { data, error } = await supabase
+      .from('contratos_pre_venda')
+      .select(
+        `
+        *,
+        agencias ( nome_fantasia ),
+        produtos ( nome )
+      `,
+      )
+      .eq('pais', pais)
+
+    if (error) throw new Error(error.message)
+
+    return data.map((c: any) => ({
+      id: c.id,
+      id_agencia: c.id_agencia,
+      agencia_nome: c.agencias ? c.agencias.nome_fantasia : '',
+      id_produto: c.id_produto,
+      produto_nome: c.produtos ? c.produtos.nome : '',
+      dias_iniciais: c.dias_iniciais,
+      dias_consumidos: c.dias_consumidos,
+      data_validade: c.data_validade,
+      status: c.status || 'ATIVO',
+      pais: c.pais as 'BR' | 'AR',
+      moeda: c.moeda,
+    }))
+  }
+
+  async addContrato(
+    contrato: Omit<IContratoPreVenda, 'id' | 'dias_consumidos' | 'agencia_nome' | 'produto_nome'>,
+  ): Promise<void> {
+    const { error } = await supabase.from('contratos_pre_venda').insert({
+      id_agencia: String(contrato.id_agencia),
+      id_produto: String(contrato.id_produto),
+      dias_iniciais: contrato.dias_iniciais,
+      data_validade: contrato.data_validade,
+      status: contrato.status,
+      pais: contrato.pais,
+      moeda: contrato.moeda,
+    })
+    if (error) throw new Error(error.message)
+  }
+
+  async getExtrato(id_contrato: string): Promise<IExtratoPreVenda[]> {
+    const { data, error } = await supabase
+      .from('extrato_pre_venda')
+      .select(
+        `
+        *,
+        vouchers ( voucher_code )
+      `,
+      )
+      .eq('id_contrato', id_contrato)
+      .order('data_movimento', { ascending: false })
+
+    if (error) throw new Error(error.message)
+
+    return data.map((e: any) => ({
+      id: e.id,
+      id_contrato: e.id_contrato,
+      id_voucher: e.id_voucher,
+      voucher_code: e.vouchers ? e.vouchers.voucher_code : '',
+      tipo_movimento: e.tipo_movimento,
+      dias_consumidos: e.dias_consumidos,
+      data_movimento: e.data_movimento,
+    }))
+  }
+
+  async getProdutosLivres(pais: 'BR' | 'AR'): Promise<{ id: string; nome: string }[]> {
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('id, nome, grupos_produtos!inner(pais)')
+      .eq('grupos_produtos.pais', pais)
+
+    if (error) throw new Error(error.message)
+
+    return data.map((p: any) => ({ id: p.id, nome: p.nome }))
+  }
+}
+
+export class ClassificacaoRepoSupabase implements IClassificacaoRepo {
+  async getVouchersZeroAmount(pais: 'BR' | 'AR'): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('vouchers')
+      .select(
+        `
+        id,
+        voucher_code,
+        agencia_atual,
+        data_criacao,
+        destino,
+        data_inicio_viagem,
+        data_fim_viagem,
+        tipo_zero_amount,
+        amount_paid,
+        monto,
+        produtos ( nome ),
+        passageiros ( id )
+      `,
+      )
+      .eq('pais', pais)
+      .or('amount_paid.eq.0,monto.eq.0')
+
+    if (error) throw new Error(error.message)
+
+    return data.map((v: any) => {
+      let dias = 1
+      if (v.data_inicio_viagem && v.data_fim_viagem) {
+        const d1 = new Date(v.data_inicio_viagem)
+        const d2 = new Date(v.data_fim_viagem)
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+          dias = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24)) + 1)
+        }
+      }
+
+      return {
+        id: v.id,
+        voucher_code: v.voucher_code,
+        agencia: v.agencia_atual,
+        data_emissao: v.data_criacao ? new Date(v.data_criacao).toISOString().split('T')[0] : '',
+        passageiros_count: v.passageiros ? v.passageiros.length : 1,
+        destino: v.destino,
+        plano: v.produtos
+          ? Array.isArray(v.produtos)
+            ? v.produtos[0]?.nome
+            : v.produtos.nome
+          : 'N/A',
+        dias_viagem: dias,
+        tipo_zero_amount: v.tipo_zero_amount || 'ZERO_INDEFINIDO',
+      }
+    })
+  }
+
+  async reclassificarVoucher(
+    id_voucher: string,
+    tipo_anterior: string | null,
+    tipo_novo: string,
+    motivo: string,
+    id_usuario: string,
+    id_contrato?: string,
+    dias_consumidos?: number,
+  ): Promise<void> {
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('auth_user_id', id_usuario)
+      .single()
+
+    const uid = usuario ? usuario.id : null
+
+    const { error: updErr } = await supabase
+      .from('vouchers')
+      .update({ tipo_zero_amount: tipo_novo })
+      .eq('id', id_voucher)
+
+    if (updErr) throw new Error(updErr.message)
+
+    await supabase.from('audit_reclassificacao').insert({
+      id_voucher,
+      tipo_anterior,
+      tipo_novo,
+      motivo,
+      classificado_por: uid,
+    })
+
+    if (tipo_novo === 'PRE_VENDA' && id_contrato && dias_consumidos) {
+      await supabase.from('extrato_pre_venda').insert({
+        id_contrato,
+        id_voucher,
+        tipo_movimento: 'DEBITO',
+        dias_consumidos,
+      })
+
+      const { data: c } = await supabase
+        .from('contratos_pre_venda')
+        .select('dias_consumidos')
+        .eq('id', id_contrato)
+        .single()
+
+      if (c) {
+        await supabase
+          .from('contratos_pre_venda')
+          .update({ dias_consumidos: (c.dias_consumidos || 0) + dias_consumidos })
+          .eq('id', id_contrato)
+      }
+    }
   }
 }

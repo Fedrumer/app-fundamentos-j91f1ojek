@@ -1,4 +1,5 @@
 export interface ITenantSession {
+  id_usuario: string
   usuario: string
   nivel: string
   id_agencia: string | number
@@ -73,6 +74,30 @@ export interface ILancamentoFaturamento {
   status_quitacao?: string
 }
 
+export interface IContratoPreVenda {
+  id: string
+  id_agencia: string | number
+  agencia_nome?: string
+  id_produto: string | number
+  produto_nome?: string
+  dias_iniciais: number
+  dias_consumidos: number
+  data_validade: string
+  status: string
+  pais: 'BR' | 'AR'
+  moeda: string
+}
+
+export interface IExtratoPreVenda {
+  id: string
+  id_contrato: string
+  id_voucher: string
+  voucher_code?: string
+  tipo_movimento: string
+  dias_consumidos: number
+  data_movimento: string
+}
+
 export interface IUsersRepo {
   login(email: string, senha: string, pais?: 'BR' | 'AR'): Promise<ITenantSession>
   getUsers(pais: 'BR' | 'AR'): Promise<any[]>
@@ -131,4 +156,26 @@ export interface IFinanceiroRepo {
   ): Promise<void>
   quitarLancamento(id_lancamento: string): Promise<void>
   quitarLancamentosPorVoucher(id_voucher: string): Promise<void>
+}
+
+export interface IPreVendaRepo {
+  getContratos(pais: 'BR' | 'AR'): Promise<IContratoPreVenda[]>
+  addContrato(
+    contrato: Omit<IContratoPreVenda, 'id' | 'dias_consumidos' | 'agencia_nome' | 'produto_nome'>,
+  ): Promise<void>
+  getExtrato(id_contrato: string): Promise<IExtratoPreVenda[]>
+  getProdutosLivres(pais: 'BR' | 'AR'): Promise<{ id: string; nome: string }[]>
+}
+
+export interface IClassificacaoRepo {
+  getVouchersZeroAmount(pais: 'BR' | 'AR'): Promise<any[]>
+  reclassificarVoucher(
+    id_voucher: string,
+    tipo_anterior: string | null,
+    tipo_novo: string,
+    motivo: string,
+    id_usuario: string,
+    id_contrato?: string,
+    dias_consumidos?: number,
+  ): Promise<void>
 }
