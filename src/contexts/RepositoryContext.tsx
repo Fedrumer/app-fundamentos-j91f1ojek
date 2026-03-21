@@ -6,6 +6,7 @@ import {
   IUsersRepo,
   IVouchersRepo,
 } from '@/domain/contracts'
+
 import {
   AgenciasRepoMock,
   FinanceiroRepoMock,
@@ -13,6 +14,14 @@ import {
   UsersRepoMock,
   VouchersRepoMock,
 } from '@/data/mockRepositories'
+
+import {
+  UsersRepoSupabase,
+  AgenciasRepoSupabase,
+  VouchersRepoSupabase,
+  ProdutosRepoSupabase,
+  FinanceiroRepoSupabase,
+} from '@/data/supabaseRepositories'
 
 interface IRepositoryContext {
   usersRepo: IUsersRepo
@@ -25,16 +34,27 @@ interface IRepositoryContext {
 const RepositoryContext = createContext<IRepositoryContext | undefined>(undefined)
 
 export const RepositoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const repos = useMemo(
-    () => ({
-      usersRepo: new UsersRepoMock(),
-      agenciasRepo: new AgenciasRepoMock(),
-      vouchersRepo: new VouchersRepoMock(),
-      produtosRepo: new ProdutosRepoMock(),
-      financeiroRepo: new FinanceiroRepoMock(),
-    }),
-    [],
-  )
+  const repos = useMemo(() => {
+    const useMocks = import.meta.env.VITE_USE_MOCKS === 'true'
+
+    if (useMocks) {
+      return {
+        usersRepo: new UsersRepoMock(),
+        agenciasRepo: new AgenciasRepoMock(),
+        vouchersRepo: new VouchersRepoMock(),
+        produtosRepo: new ProdutosRepoMock(),
+        financeiroRepo: new FinanceiroRepoMock(),
+      }
+    }
+
+    return {
+      usersRepo: new UsersRepoSupabase(),
+      agenciasRepo: new AgenciasRepoSupabase(),
+      vouchersRepo: new VouchersRepoSupabase(),
+      produtosRepo: new ProdutosRepoSupabase(),
+      financeiroRepo: new FinanceiroRepoSupabase(),
+    }
+  }, [])
 
   return <RepositoryContext.Provider value={repos}>{children}</RepositoryContext.Provider>
 }

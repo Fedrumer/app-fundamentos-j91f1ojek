@@ -227,7 +227,7 @@ export class VouchersRepoMock implements IVouchersRepo {
         status: v.status_voucher,
       }))
   }
-  async reprocessarVoucher(id: string, id_ag: number, nome: string): Promise<void> {
+  async reprocessarVoucher(id: string, id_ag: number | string, nome: string): Promise<void> {
     const v = mockVouchersData.find((x) => x.voucher_code === id)
     if (v) {
       v.id_agencia_atual = id_ag

@@ -126,7 +126,7 @@ export default function Vendas() {
     if (agObj) {
       await vouchersRepo.reprocessarVoucher(
         editingVoucher.voucher_code,
-        Number(agObj.id),
+        agObj.id,
         agObj.nome_fantasia,
       )
       await loadData()
