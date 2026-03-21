@@ -95,10 +95,15 @@ export default function Index() {
   }, [session?.pais_ativo, financeiroRepo, session])
 
   const formatCurrency = (value: number, currency: string) => {
-    return new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'es-AR', {
-      style: 'currency',
-      currency: currency,
-    }).format(value)
+    const safeCurrency = currency || session?.moeda_padrao || 'BRL'
+    try {
+      return new Intl.NumberFormat(safeCurrency === 'BRL' ? 'pt-BR' : 'es-AR', {
+        style: 'currency',
+        currency: safeCurrency,
+      }).format(value)
+    } catch (e) {
+      return `${safeCurrency} ${value.toFixed(2)}`
+    }
   }
 
   const currentTotals = stats?.totaisPorMoeda[selectedCurrency] || {
@@ -143,7 +148,7 @@ export default function Index() {
             <span className="text-sm font-medium text-slate-500 ml-2">Moeda Base:</span>
             <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
               <SelectTrigger className="w-[100px] border-none shadow-none focus:ring-0 font-bold text-slate-800">
-                <SelectValue />
+                <SelectValue placeholder="Moeda" />
               </SelectTrigger>
               <SelectContent>
                 {stats &&
@@ -287,7 +292,9 @@ export default function Index() {
       <div className="grid gap-4 md:grid-cols-7">
         <Card className="col-span-5 border-slate-200/60 shadow-sm">
           <CardHeader>
-            <CardTitle>Evolução Diária de Vendas ({selectedCurrency})</CardTitle>
+            <CardTitle>
+              Evolução Diária de Vendas {selectedCurrency ? `(${selectedCurrency})` : ''}
+            </CardTitle>
             <CardDescription>Valor bruto processado por dia.</CardDescription>
           </CardHeader>
           <CardContent>
