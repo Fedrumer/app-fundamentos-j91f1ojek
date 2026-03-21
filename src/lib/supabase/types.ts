@@ -1806,15 +1806,9 @@ export const Constants = {
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: agencias
-//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "tenant_agencias_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
+//     WITH CHECK: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
 // Table: agencies
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1876,15 +1870,9 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: faturamento_net
-//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "tenant_faturamento_net_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
+//     WITH CHECK: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
 // Table: faturas
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1966,15 +1954,11 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: usuarios
-//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "tenant_usuarios_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (auth_user_id = auth.uid())
+//   Policy "tenant_usuarios_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (auth_user_id = auth.uid())
+//     WITH CHECK: (auth_user_id = auth.uid())
 // Table: variacoes_preco
 //   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1996,15 +1980,9 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: vouchers
-//   Policy "authenticated_delete" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
+//   Policy "tenant_vouchers_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
+//     WITH CHECK: ((( SELECT usuarios.perfil_admin    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid())) = true) OR (pais = ( SELECT usuarios.pais    FROM usuarios   WHERE (usuarios.auth_user_id = auth.uid()))))
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION check_imutabilidade_tipo_canal()

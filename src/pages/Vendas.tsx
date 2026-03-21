@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTenant } from '@/contexts/TenantContext'
 import { useRepositories } from '@/contexts/RepositoryContext'
+import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -31,7 +32,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useFilteredData } from '@/hooks/useFilteredData'
 import { useToast } from '@/hooks/use-toast'
-import { Edit, RefreshCw } from 'lucide-react'
+import { Edit, Upload, Loader2 } from 'lucide-react'
 import { IVoucherData, IAgencia, IProductGroup } from '@/domain/contracts'
 import { VendasComissaoAdapter } from '@/components/VendasComissaoAdapter'
 
@@ -47,6 +48,8 @@ export default function Vendas() {
   const [editingVoucher, setEditingVoucher] = useState<IVoucherData | null>(null)
   const [viewingCommission, setViewingCommission] = useState<IVoucherData | null>(null)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>('')
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const st = searchParams.get('status') || 'all'
   const ag = searchParams.get('agencia') || 'all'
@@ -85,10 +88,36 @@ export default function Vendas() {
     setSearchParams(searchParams)
   }
 
-  const handleSync = async () => {
-    await vouchersRepo.sincronizarCSV()
-    await loadData()
-    toast({ title: 'Sincronização Concluída', description: 'Novos vouchers recebidos.' })
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ingerir_csv_outlook', {
+        body: formData,
+      })
+
+      if (error) throw error
+
+      toast({
+        title: 'Importação Concluída',
+        description: `Sucesso: ${data.processedCount} | Falhas/Duplicados: ${data.failedCount}`,
+      })
+      await loadData()
+    } catch (err: any) {
+      toast({
+        title: 'Erro na importação',
+        description: err.message || 'Ocorreu um erro ao processar o arquivo.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const handleSaveAgency = async () => {
@@ -113,9 +142,16 @@ export default function Vendas() {
     }).format(val)
 
   const getStatus = (s: string) =>
-    ({ ISSUED: 'Emitido', USED: 'Utilizado', CANCELLED: 'Cancelado' })[s] || s
+    ({
+      ISSUED: 'Emitido',
+      USED: 'Utilizado',
+      CANCELLED: 'Cancelado',
+      PENDING: 'Pendente',
+      CONFIRMED: 'Confirmado',
+      ACTIVE: 'Ativo',
+      EXPIRED: 'Vencido',
+    })[s] || s
 
-  // Pega um grupo de produto padrão para exibir regras de cálculo (pois voucher não especifica o grupo de origem na listagem simples)
   const defaultProductGroup = productGroups[0] || {
     id: 1,
     nome: 'Geral Padrão',
@@ -134,9 +170,28 @@ export default function Vendas() {
             Gestão de vouchers da região {session?.pais_ativo}
           </p>
         </div>
-        <Button onClick={handleSync} className="gap-2">
-          <RefreshCw className="h-4 w-4" /> Sincronizar Ingestão
-        </Button>
+
+        <div>
+          <input
+            type="file"
+            accept=".csv"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-2"
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {isUploading ? 'Importando...' : 'Importar CSV'}
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4 border-slate-200/60 shadow-sm flex flex-wrap gap-4 items-end bg-white">
@@ -149,8 +204,12 @@ export default function Vendas() {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="ISSUED">Emitido</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+              <SelectItem value="PENDING">Pendente</SelectItem>
               <SelectItem value="USED">Utilizado</SelectItem>
               <SelectItem value="CANCELLED">Cancelado</SelectItem>
+              <SelectItem value="ACTIVE">Ativo</SelectItem>
+              <SelectItem value="EXPIRED">Vencido</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -228,7 +287,13 @@ export default function Vendas() {
                   <TableCell>{v.voucher_passenger_code}</TableCell>
                   <TableCell>{v.agencia_atual}</TableCell>
                   <TableCell>
-                    <Badge variant={v.status_voucher === 'ISSUED' ? 'default' : 'secondary'}>
+                    <Badge
+                      variant={
+                        ['ISSUED', 'CONFIRMED', 'ACTIVE'].includes(v.status_voucher)
+                          ? 'default'
+                          : 'secondary'
+                      }
+                    >
                       {getStatus(v.status_voucher)}
                     </Badge>
                   </TableCell>
