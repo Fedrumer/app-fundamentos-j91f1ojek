@@ -39,19 +39,24 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { IDashboardStats, IIngestaoLog, IAlerta } from '@/domain/contracts'
+import { IDashboardStats, IIngestaoLog, IAlerta, ISimulacaoSalva, ICampanha } from '@/domain/contracts'
+import { Link } from 'react-router-dom'
+import { Calculator } from 'lucide-react'
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
 
 export default function Index() {
   const { session } = useTenant()
-  const { financeiroRepo } = useRepositories()
+  const { financeiroRepo, simulacaoRepo, produtosRepo } = useRepositories()
 
   const [stats, setStats] = useState<IDashboardStats | null>(null)
   const [ingestions, setIngestions] = useState<IIngestaoLog[]>([])
   const [alerts, setAlerts] = useState<IAlerta[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCurrency, setSelectedCurrency] = useState<string>('')
+  const [simulacoes, setSimulacoes] = useState<ISimulacaoSalva[]>([])
+  const [gruposSemTPA, setGruposSemTPA] = useState<string[]>([])
+  const [campanhasExpirando, setCampanhasExpirando] = useState<ICampanha[]>([])
 
   useEffect(() => {
     let isMounted = true
@@ -60,16 +65,48 @@ export default function Index() {
     const loadDashboard = async () => {
       if (!session) return
       try {
-        const [dashStats, ings, alts] = await Promise.all([
-          financeiroRepo.getDashboardCompleto(session.pais_ativo),
-          financeiroRepo.getIngestions(session.pais_ativo),
-          financeiroRepo.getAlerts(session.pais_ativo),
+        const pais = session.pais_ativo
+        const isAdmin = session.perfil_admin
+
+        const [dashStats, ings, alts, sims, ...pricingData] = await Promise.all([
+          financeiroRepo.getDashboardCompleto(pais),
+          financeiroRepo.getIngestions(pais),
+          financeiroRepo.getAlerts(pais),
+          simulacaoRepo.listarSimulacoes(pais),
+          ...(isAdmin
+            ? [produtosRepo.getGroups(pais), simulacaoRepo.getTodosTPAs(pais), simulacaoRepo.getCampanhasAdmin(pais)]
+            : []),
         ])
 
         if (isMounted) {
           setStats(dashStats)
           setIngestions(ings)
           setAlerts(alts)
+
+          const sorted = [...sims].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          )
+          setSimulacoes(sorted.slice(0, 5))
+
+          if (isAdmin && pricingData.length === 3) {
+            const [grupos, tpas, campanhas] = pricingData as [
+              Awaited<ReturnType<typeof produtosRepo.getGroups>>,
+              Awaited<ReturnType<typeof simulacaoRepo.getTodosTPAs>>,
+              Awaited<ReturnType<typeof simulacaoRepo.getCampanhasAdmin>>,
+            ]
+            const comTPA = new Set(tpas.map((t) => String(t.id_grupo_produto)))
+            setGruposSemTPA(grupos.filter((g) => !comTPA.has(String(g.id))).map((g) => g.nome))
+
+            const hoje = new Date()
+            const em7Dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000)
+            setCampanhasExpirando(
+              campanhas.filter((c) => {
+                if (!c.data_fim || !c.ativo) return false
+                const fim = new Date(c.data_fim)
+                return fim >= hoje && fim <= em7Dias
+              }),
+            )
+          }
 
           const availableCurrencies = Object.keys(dashStats.totaisPorMoeda)
           if (availableCurrencies.length > 0) {
@@ -92,7 +129,7 @@ export default function Index() {
     return () => {
       isMounted = false
     }
-  }, [session?.pais_ativo, financeiroRepo, session])
+  }, [session?.pais_ativo, financeiroRepo, simulacaoRepo, produtosRepo, session])
 
   const formatCurrency = (value: number, currency: string) => {
     const safeCurrency = currency || session?.moeda_padrao || 'BRL'
@@ -117,6 +154,15 @@ export default function Index() {
     if (!stats) return []
     return stats.evolucaoDiaria.filter((d) => d.moeda === selectedCurrency)
   }, [stats, selectedCurrency])
+
+  type SimResultado = { guardrail?: 'OK' | 'ATENCAO' | 'CRITICO' }
+  const getWorstGuardrail = (sim: ISimulacaoSalva): 'OK' | 'ATENCAO' | 'CRITICO' => {
+    const rs = sim.resultados_json as SimResultado[]
+    if (!rs?.length) return 'OK'
+    if (rs.some((r) => r.guardrail === 'CRITICO')) return 'CRITICO'
+    if (rs.some((r) => r.guardrail === 'ATENCAO')) return 'ATENCAO'
+    return 'OK'
+  }
 
   if (!session) return null
 
@@ -384,6 +430,121 @@ export default function Index() {
                     <ChartLegend content={<ChartLegendContent />} />
                   </PieChart>
                 </ChartContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pricing & Simulations */}
+      <div className="grid gap-4 md:grid-cols-7">
+        <Card className="col-span-5 border-slate-200/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle>Cotações Recentes</CardTitle>
+              <CardDescription>Últimas simulações salvas nesta região</CardDescription>
+            </div>
+            <Link
+              to="/simulador"
+              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+              Nova Cotação
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {simulacoes.length === 0 ? (
+              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed text-sm text-slate-400">
+                Nenhuma cotação salva ainda
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Linhas</TableHead>
+                    <TableHead>Guardrail</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {simulacoes.map((sim) => {
+                    const guardrail = getWorstGuardrail(sim)
+                    return (
+                      <TableRow key={sim.id}>
+                        <TableCell className="font-medium">{sim.nome}</TableCell>
+                        <TableCell className="text-sm text-slate-500">
+                          {new Date(sim.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-500">
+                          {(sim.resultados_json as unknown[]).length}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              guardrail === 'OK'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : guardrail === 'ATENCAO'
+                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                  : 'border-rose-200 bg-rose-50 text-rose-700'
+                            }
+                          >
+                            {guardrail === 'OK' ? 'OK' : guardrail === 'ATENCAO' ? 'Atenção' : 'Crítico'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2 border-slate-200/60 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Alertas de Pricing</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            {!session.perfil_admin ? (
+              <div className="flex h-24 items-center justify-center text-sm text-slate-400">
+                Visível apenas para administradores
+              </div>
+            ) : gruposSemTPA.length === 0 && campanhasExpirando.length === 0 ? (
+              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed text-sm text-slate-400">
+                Nenhum alerta de pricing
+              </div>
+            ) : (
+              <div className="space-y-2 mt-2">
+                {gruposSemTPA.map((nome) => (
+                  <div
+                    key={nome}
+                    className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2"
+                  >
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                    <p className="text-xs text-rose-800">
+                      <span className="font-medium">TPA não configurado:</span> {nome}
+                    </p>
+                  </div>
+                ))}
+                {campanhasExpirando.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2"
+                  >
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <p className="text-xs text-amber-800">
+                      <span className="font-medium">Campanha expira em breve:</span> {c.nome}
+                      {c.data_fim && (
+                        <span className="ml-1 text-amber-600">
+                          ({new Date(c.data_fim).toLocaleDateString('pt-BR')})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
