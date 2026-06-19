@@ -292,7 +292,6 @@ export default function Simulador() {
       await simulacaoRepo.salvarSimulacao(
         nomeCotacao.trim(),
         pais,
-        String(session.id_usuario ?? ''),
         linhas as unknown[],
         resultados.map((r) => r.resultado) as unknown[],
       )

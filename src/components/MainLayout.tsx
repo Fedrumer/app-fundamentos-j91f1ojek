@@ -32,9 +32,14 @@ const navLinks = [
   { name: 'Cortesias', path: '/cortesias' },
 ]
 
+const adminLinks = [
+  { name: 'Campanhas', path: '/admin/campanhas' },
+]
+
 export default function MainLayout() {
   const { session, switchCountry, logout } = useTenant()
   const location = useLocation()
+  const allLinks = session?.perfil_admin ? [...navLinks, ...adminLinks] : navLinks
 
   if (!session) return null
 
@@ -66,7 +71,7 @@ export default function MainLayout() {
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 flex flex-col gap-2">
-                  {navLinks.map((link) => (
+                  {allLinks.map((link) => (
                     <Link
                       key={link.path}
                       to={link.path}

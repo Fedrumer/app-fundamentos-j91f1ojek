@@ -1009,6 +1009,21 @@ export class SimulacaoRepoSupabase implements ISimulacaoRepo {
     return { ...tpa, id: data.id }
   }
 
+  private _mapCampanha(c: Record<string, unknown>): ICampanha {
+    return {
+      id: c.id as string,
+      nome: c.nome as string,
+      pais: c.pais as 'BR' | 'AR',
+      tipo: c.tipo as 'DESCONTO_PERCENTUAL' | '2X1',
+      percentual: Number(c.percentual),
+      condicao_pagamento: c.condicao_pagamento as string,
+      id_grupo_produto: (c.id_grupo_produto as string | null) ?? null,
+      ativo: c.ativo as boolean,
+      data_inicio: (c.data_inicio as string | null) ?? null,
+      data_fim: (c.data_fim as string | null) ?? null,
+    }
+  }
+
   async getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
     const { data, error } = await supabase
       .from('campanhas_pricing')
@@ -1017,26 +1032,82 @@ export class SimulacaoRepoSupabase implements ISimulacaoRepo {
       .eq('ativo', true)
 
     if (error) throw new Error(error.message)
+    return (data ?? []).map((c) => this._mapCampanha(c as Record<string, unknown>))
+  }
 
-    return (data ?? []).map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      pais: c.pais,
-      tipo: c.tipo,
-      percentual: Number(c.percentual),
-      condicao_pagamento: c.condicao_pagamento,
-      id_grupo_produto: c.id_grupo_produto,
-      ativo: c.ativo,
-    }))
+  async getCampanhasAdmin(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
+    const { data, error } = await supabase
+      .from('campanhas_pricing')
+      .select('*')
+      .eq('pais', pais)
+      .order('ativo', { ascending: false })
+      .order('nome')
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((c) => this._mapCampanha(c as Record<string, unknown>))
+  }
+
+  async salvarCampanha(campanha: Omit<ICampanha, 'id'> & { id?: string }): Promise<ICampanha> {
+    const payload = {
+      nome: campanha.nome,
+      pais: campanha.pais,
+      tipo: campanha.tipo,
+      percentual: campanha.percentual,
+      condicao_pagamento: campanha.condicao_pagamento,
+      id_grupo_produto: campanha.id_grupo_produto ?? null,
+      ativo: campanha.ativo,
+      data_inicio: campanha.data_inicio ?? null,
+      data_fim: campanha.data_fim ?? null,
+    }
+
+    if (campanha.id) {
+      const { data, error } = await supabase
+        .from('campanhas_pricing')
+        .update(payload)
+        .eq('id', campanha.id)
+        .select()
+        .single()
+      if (error) throw new Error(error.message)
+      return this._mapCampanha(data as Record<string, unknown>)
+    }
+
+    const { data, error } = await supabase
+      .from('campanhas_pricing')
+      .insert(payload)
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
+    return this._mapCampanha(data as Record<string, unknown>)
+  }
+
+  async toggleCampanha(id: string, ativo: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('campanhas_pricing')
+      .update({ ativo })
+      .eq('id', id)
+    if (error) throw new Error(error.message)
+  }
+
+  private async _getUsuarioId(): Promise<string | null> {
+    const { data: authData } = await supabase.auth.getUser()
+    const authUid = authData.user?.id
+    if (!authUid) return null
+    const { data } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('auth_user_id', authUid)
+      .single()
+    return data?.id ?? null
   }
 
   async salvarSimulacao(
     nome: string,
     pais: 'BR' | 'AR',
-    id_usuario: string,
     inputs: unknown[],
     resultados: unknown[],
   ): Promise<ISimulacaoSalva> {
+    const id_usuario = await this._getUsuarioId()
+
     const { data, error } = await supabase
       .from('simulacoes')
       .insert({
@@ -1062,13 +1133,20 @@ export class SimulacaoRepoSupabase implements ISimulacaoRepo {
   }
 
   async listarSimulacoes(pais: 'BR' | 'AR'): Promise<ISimulacaoSalva[]> {
-    const { data, error } = await supabase
+    const id_usuario = await this._getUsuarioId()
+
+    let query = supabase
       .from('simulacoes')
       .select('*')
       .eq('pais', pais)
       .order('updated_at', { ascending: false })
       .limit(50)
 
+    if (id_usuario) {
+      query = query.eq('id_usuario', id_usuario)
+    }
+
+    const { data, error } = await query
     if (error) throw new Error(error.message)
     return (data ?? []).map((d) => ({
       id: d.id,

@@ -250,6 +250,8 @@ export interface ICampanha {
   condicao_pagamento: string
   id_grupo_produto?: string | null
   ativo: boolean
+  data_inicio?: string | null
+  data_fim?: string | null
 }
 
 export type FormaCobranca = 'DEPOSITO' | '1X_CARTAO' | '2X_CARTAO' | '3X_CARTAO'
@@ -313,10 +315,12 @@ export interface ISimulacaoRepo {
   getTPA(id_grupo: string | number, pais: 'BR' | 'AR', destino?: string): Promise<ITPA | null>
   saveTPA(tpa: ITPA): Promise<ITPA>
   getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]>
+  getCampanhasAdmin(pais: 'BR' | 'AR'): Promise<ICampanha[]>
+  salvarCampanha(campanha: Omit<ICampanha, 'id'> & { id?: string }): Promise<ICampanha>
+  toggleCampanha(id: string, ativo: boolean): Promise<void>
   salvarSimulacao(
     nome: string,
     pais: 'BR' | 'AR',
-    id_usuario: string,
     inputs: unknown[],
     resultados: unknown[],
   ): Promise<ISimulacaoSalva>

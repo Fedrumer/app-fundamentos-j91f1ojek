@@ -580,12 +580,36 @@ export class SimulacaoRepoMock implements ISimulacaoRepo {
     return []
   }
 
+  private _campanhas: ICampanha[] = [
+    { id: 'camp-ar-1', nome: '20% Desconto Transferência/Depósito', pais: 'AR', tipo: 'DESCONTO_PERCENTUAL', percentual: 20, condicao_pagamento: 'TRANSFERENCIA_DEPOSITO', id_grupo_produto: null, ativo: true },
+    { id: 'camp-ar-2', nome: '2x1 Now Multi 150', pais: 'AR', tipo: '2X1', percentual: 0, condicao_pagamento: 'TRANSFERENCIA_DEPOSITO', id_grupo_produto: null, ativo: true },
+  ]
+
+  async getCampanhasAdmin(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
+    return this._campanhas.filter((c) => c.pais === pais)
+  }
+
+  async salvarCampanha(campanha: Omit<ICampanha, 'id'> & { id?: string }): Promise<ICampanha> {
+    if (campanha.id) {
+      const idx = this._campanhas.findIndex((c) => c.id === campanha.id)
+      if (idx >= 0) this._campanhas[idx] = { ...this._campanhas[idx], ...campanha } as ICampanha
+      return this._campanhas[idx]
+    }
+    const nova: ICampanha = { ...campanha, id: `mock-${Date.now()}` }
+    this._campanhas.push(nova)
+    return nova
+  }
+
+  async toggleCampanha(id: string, ativo: boolean): Promise<void> {
+    const c = this._campanhas.find((c) => c.id === id)
+    if (c) c.ativo = ativo
+  }
+
   private _simulacoes: ISimulacaoSalva[] = []
 
   async salvarSimulacao(
     nome: string,
     pais: 'BR' | 'AR',
-    _id_usuario: string,
     inputs: unknown[],
     resultados: unknown[],
   ): Promise<ISimulacaoSalva> {
