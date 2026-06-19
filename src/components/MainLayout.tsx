@@ -42,8 +42,6 @@ export default function MainLayout() {
   const location = useLocation()
   const allLinks = session?.perfil_admin ? [...navLinks, ...adminLinks] : navLinks
 
-  if (!session) return null
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -55,7 +53,7 @@ export default function MainLayout() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen w-full flex-col bg-slate-50">
+      {session && <div className="flex min-h-screen w-full flex-col bg-slate-50">
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white px-4 shadow-sm md:px-6 print:hidden">
           <div className="flex items-center gap-4">
             <Sheet>
@@ -190,7 +188,7 @@ export default function MainLayout() {
             <Outlet key={session.pais_ativo} />
           </div>
         </main>
-      </div>
+      </div>}
     </ProtectedRoute>
   )
 }

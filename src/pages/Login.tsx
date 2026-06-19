@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useTenant } from '@/contexts/TenantContext'
+import { useRepositories } from '@/contexts/RepositoryContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -9,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 
 export default function Login() {
   const { signIn, user, loading: authLoading } = useAuth()
-  const { session, loadingTenant } = useTenant()
+  const { session, setSession, loadingTenant } = useTenant()
+  const { usersRepo } = useRepositories()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -31,15 +33,23 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const { error: signInError } = await signIn(email, password)
-
-    if (signInError) {
-      setError('Credenciais inválidas. Verifique o e-mail e a senha.')
-      setLoading(false)
+    if (import.meta.env.VITE_USE_MOCKS === 'true') {
+      try {
+        const mockSession = await usersRepo.login(email, password)
+        setSession(mockSession)
+        navigate(from, { replace: true })
+      } catch {
+        setError('Credenciais inválidas. Verifique o e-mail e a senha.')
+        setLoading(false)
+      }
       return
     }
 
-    // Sucesso: os hooks vão atualizar e o useEffect de redirect será disparado
+    const { error: signInError } = await signIn(email, password)
+    if (signInError) {
+      setError('Credenciais inválidas. Verifique o e-mail e a senha.')
+      setLoading(false)
+    }
   }
 
   const selectUser = (mail: string) => {
