@@ -34,6 +34,7 @@ const navLinks = [
 
 const adminLinks = [
   { name: 'Campanhas', path: '/admin/campanhas' },
+  { name: 'TPA / Parâmetros', path: '/admin/tpa' },
 ]
 
 export default function MainLayout() {

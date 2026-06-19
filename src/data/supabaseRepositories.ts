@@ -1009,6 +1009,40 @@ export class SimulacaoRepoSupabase implements ISimulacaoRepo {
     return { ...tpa, id: data.id }
   }
 
+  async getTodosTPAs(pais: 'BR' | 'AR'): Promise<ITPA[]> {
+    const { data, error } = await supabase
+      .from('tpa_produtos')
+      .select('*')
+      .eq('pais', pais)
+      .order('destino')
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((d) => ({
+      id: d.id,
+      id_grupo_produto: d.id_grupo_produto,
+      pais: d.pais,
+      destino: d.destino,
+      custo_tpa_diario: Number(d.custo_tpa_diario),
+      moeda: d.moeda,
+    }))
+  }
+
+  async getTodosParametros(pais: 'BR' | 'AR'): Promise<IParametrosPricing[]> {
+    const { data, error } = await supabase
+      .from('parametros_pricing')
+      .select('*')
+      .eq('pais', pais)
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((d) => ({
+      id: d.id,
+      id_grupo_produto: d.id_grupo_produto,
+      pais: d.pais,
+      perc_impostos: Number(d.perc_impostos),
+      perc_agenciamento: Number(d.perc_agenciamento),
+      perc_bonificacoes: Number(d.perc_bonificacoes),
+      perc_admin: Number(d.perc_admin),
+    }))
+  }
+
   private _mapCampanha(c: Record<string, unknown>): ICampanha {
     return {
       id: c.id as string,

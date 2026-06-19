@@ -316,6 +316,8 @@ export interface ISimulacaoRepo {
   saveTPA(tpa: ITPA): Promise<ITPA>
   getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]>
   getCampanhasAdmin(pais: 'BR' | 'AR'): Promise<ICampanha[]>
+  getTodosTPAs(pais: 'BR' | 'AR'): Promise<ITPA[]>
+  getTodosParametros(pais: 'BR' | 'AR'): Promise<IParametrosPricing[]>
   salvarCampanha(campanha: Omit<ICampanha, 'id'> & { id?: string }): Promise<ICampanha>
   toggleCampanha(id: string, ativo: boolean): Promise<void>
   salvarSimulacao(

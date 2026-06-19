@@ -786,6 +786,14 @@ function FormCard({
           </div>
         )}
 
+        {/* Aviso TPA zerado (não-admin) */}
+        {linha.id_grupo && !isAdmin && (tpaPorGrupo[linha.id_grupo] === 0 || tpaPorGrupo[linha.id_grupo] === undefined) && (
+          <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Custo de risco (TPA) não configurado — contacte o administrador
+          </div>
+        )}
+
         {/* Parâmetros de custo */}
         {linha.id_grupo && parametrosPorGrupo[linha.id_grupo] && (
           <Accordion type="single" collapsible>

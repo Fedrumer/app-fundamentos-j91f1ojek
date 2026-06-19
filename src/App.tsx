@@ -21,6 +21,7 @@ import Cortesias from './pages/Cortesias'
 import PreVenda from './pages/PreVenda'
 import Simulador from './pages/Simulador'
 import AdminCampanhas from './pages/AdminCampanhas'
+import AdminTPA from './pages/AdminTPA'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/cortesias" element={<Cortesias />} />
                 <Route path="/simulador" element={<Simulador />} />
                 <Route path="/admin/campanhas" element={<AdminCampanhas />} />
+                <Route path="/admin/tpa" element={<AdminTPA />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -553,31 +553,7 @@ export class SimulacaoRepoMock implements ISimulacaoRepo {
   }
 
   async getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
-    if (pais === 'AR') {
-      return [
-        {
-          id: 'camp-ar-1',
-          nome: '20% Desconto Transferência/Depósito',
-          pais: 'AR',
-          tipo: 'DESCONTO_PERCENTUAL',
-          percentual: 20,
-          condicao_pagamento: 'TRANSFERENCIA_DEPOSITO',
-          id_grupo_produto: null,
-          ativo: true,
-        },
-        {
-          id: 'camp-ar-2',
-          nome: '2x1 Now Multi 150',
-          pais: 'AR',
-          tipo: '2X1',
-          percentual: 0,
-          condicao_pagamento: 'TRANSFERENCIA_DEPOSITO',
-          id_grupo_produto: null,
-          ativo: true,
-        },
-      ]
-    }
-    return []
+    return this._campanhas.filter((c) => c.pais === pais && c.ativo)
   }
 
   private _campanhas: ICampanha[] = [
@@ -603,6 +579,20 @@ export class SimulacaoRepoMock implements ISimulacaoRepo {
   async toggleCampanha(id: string, ativo: boolean): Promise<void> {
     const c = this._campanhas.find((c) => c.id === id)
     if (c) c.ativo = ativo
+  }
+
+  async getTodosTPAs(pais: 'BR' | 'AR'): Promise<ITPA[]> {
+    return [
+      { id_grupo_produto: 'g-br-1', pais: 'BR', destino: 'MUNDIAL', custo_tpa_diario: 2.5, moeda: 'BRL' },
+      { id_grupo_produto: 'g-ar-1', pais: 'AR', destino: 'MUNDIAL', custo_tpa_diario: 0.85, moeda: 'USD' },
+    ].filter((t) => t.pais === pais)
+  }
+
+  async getTodosParametros(pais: 'BR' | 'AR'): Promise<IParametrosPricing[]> {
+    return [
+      { id_grupo_produto: 'g-br-1', pais: 'BR', perc_impostos: 3.5, perc_agenciamento: 5, perc_bonificacoes: 5, perc_admin: 10 },
+      { id_grupo_produto: 'g-ar-1', pais: 'AR', perc_impostos: 3.5, perc_agenciamento: 5, perc_bonificacoes: 5, perc_admin: 10 },
+    ].filter((p) => p.pais === pais)
   }
 
   private _simulacoes: ISimulacaoSalva[] = []
