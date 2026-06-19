@@ -18,6 +18,10 @@ import {
   IDashboardStats,
   IIngestaoLog,
   IAlerta,
+  ISimulacaoRepo,
+  IParametrosPricing,
+  ITPA,
+  ICampanha,
 } from '@/domain/contracts'
 
 export class UsersRepoSupabase implements IUsersRepo {
@@ -896,5 +900,132 @@ export class ClassificacaoRepoSupabase implements IClassificacaoRepo {
           .eq('id', id_contrato)
       }
     }
+  }
+}
+
+export class SimulacaoRepoSupabase implements ISimulacaoRepo {
+  private defaultParametros(id_grupo: string | number, pais: 'BR' | 'AR'): IParametrosPricing {
+    return {
+      id_grupo_produto: id_grupo,
+      pais,
+      perc_impostos: 3.5,
+      perc_agenciamento: 5.0,
+      perc_bonificacoes: 5.0,
+      perc_admin: 10.0,
+    }
+  }
+
+  async getParametros(
+    id_grupo: string | number,
+    pais: 'BR' | 'AR',
+  ): Promise<IParametrosPricing | null> {
+    const { data, error } = await supabase
+      .from('parametros_pricing')
+      .select('*')
+      .eq('id_grupo_produto', id_grupo)
+      .eq('pais', pais)
+      .maybeSingle()
+
+    if (error || !data) return this.defaultParametros(id_grupo, pais)
+
+    return {
+      id: data.id,
+      id_grupo_produto: data.id_grupo_produto,
+      pais: data.pais,
+      perc_impostos: Number(data.perc_impostos),
+      perc_agenciamento: Number(data.perc_agenciamento),
+      perc_bonificacoes: Number(data.perc_bonificacoes),
+      perc_admin: Number(data.perc_admin),
+    }
+  }
+
+  async saveParametros(p: IParametrosPricing): Promise<IParametrosPricing> {
+    const payload = {
+      id_grupo_produto: p.id_grupo_produto,
+      pais: p.pais,
+      perc_impostos: p.perc_impostos,
+      perc_agenciamento: p.perc_agenciamento,
+      perc_bonificacoes: p.perc_bonificacoes,
+      perc_admin: p.perc_admin,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from('parametros_pricing')
+      .upsert(payload, { onConflict: 'id_grupo_produto,pais' })
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+    return { ...p, id: data.id }
+  }
+
+  async getTPA(
+    id_grupo: string | number,
+    pais: 'BR' | 'AR',
+    destino = 'MUNDIAL',
+  ): Promise<ITPA | null> {
+    const { data, error } = await supabase
+      .from('tpa_produtos')
+      .select('*')
+      .eq('id_grupo_produto', id_grupo)
+      .eq('pais', pais)
+      .eq('destino', destino)
+      .maybeSingle()
+
+    if (error || !data) {
+      // Tentar fallback MUNDIAL
+      if (destino !== 'MUNDIAL') return this.getTPA(id_grupo, pais, 'MUNDIAL')
+      return null
+    }
+
+    return {
+      id: data.id,
+      id_grupo_produto: data.id_grupo_produto,
+      pais: data.pais,
+      destino: data.destino,
+      custo_tpa_diario: Number(data.custo_tpa_diario),
+      moeda: data.moeda,
+    }
+  }
+
+  async saveTPA(tpa: ITPA): Promise<ITPA> {
+    const payload = {
+      id_grupo_produto: tpa.id_grupo_produto,
+      pais: tpa.pais,
+      destino: tpa.destino,
+      custo_tpa_diario: tpa.custo_tpa_diario,
+      moeda: tpa.moeda,
+    }
+
+    const { data, error } = await supabase
+      .from('tpa_produtos')
+      .upsert(payload, { onConflict: 'id_grupo_produto,pais,destino' })
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+    return { ...tpa, id: data.id }
+  }
+
+  async getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
+    const { data, error } = await supabase
+      .from('campanhas_pricing')
+      .select('*')
+      .eq('pais', pais)
+      .eq('ativo', true)
+
+    if (error) throw new Error(error.message)
+
+    return (data ?? []).map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      pais: c.pais,
+      tipo: c.tipo,
+      percentual: Number(c.percentual),
+      condicao_pagamento: c.condicao_pagamento,
+      id_grupo_produto: c.id_grupo_produto,
+      ativo: c.ativo,
+    }))
   }
 }

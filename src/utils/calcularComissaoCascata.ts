@@ -1,12 +1,6 @@
-import { IVoucherData, IAgencia, IProductGroup } from '@/domain/contracts'
+import { IVoucherData, IAgencia, IProductGroup, ComissaoResult } from '@/domain/contracts'
 
-export interface ComissaoResult {
-  id_agencia_recebedora: string | number
-  tipo_comissao: 'DIRETA' | 'INDIRETA'
-  percentual_aplicado: number
-  valor_moeda_nativa: number
-  moeda: string
-}
+export type { ComissaoResult }
 
 /**
  * Motor de comissionamento puro: calcula o rateio em formato cascata

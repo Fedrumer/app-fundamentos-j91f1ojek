@@ -211,3 +211,96 @@ export interface IClassificacaoRepo {
     dias_consumidos?: number,
   ): Promise<void>
 }
+
+// ─── Simulação de Cotação ─────────────────────────────────────────────────────
+
+export interface ComissaoResult {
+  id_agencia_recebedora: string | number
+  tipo_comissao: 'DIRETA' | 'INDIRETA'
+  percentual_aplicado: number
+  valor_moeda_nativa: number
+  moeda: string
+}
+
+export interface ITPA {
+  id?: string
+  id_grupo_produto: string | number
+  pais: 'BR' | 'AR'
+  destino: string
+  custo_tpa_diario: number
+  moeda: string
+}
+
+export interface IParametrosPricing {
+  id?: string
+  id_grupo_produto: string | number
+  pais: 'BR' | 'AR'
+  perc_impostos: number
+  perc_agenciamento: number
+  perc_bonificacoes: number
+  perc_admin: number
+}
+
+export interface ICampanha {
+  id: string
+  nome: string
+  pais: 'BR' | 'AR'
+  tipo: 'DESCONTO_PERCENTUAL' | '2X1'
+  percentual: number
+  condicao_pagamento: string
+  id_grupo_produto?: string | null
+  ativo: boolean
+}
+
+export type FormaCobranca = 'DEPOSITO' | '1X_CARTAO' | '2X_CARTAO' | '3X_CARTAO'
+export type ProviderGC = 'PAGO24' | 'NUBI' | null
+
+export interface ISimulacaoInput {
+  pais: 'BR' | 'AR'
+  id_grupo: string | number
+  id_variacao: string | number
+  id_agencia: string | number
+  tipo_canal: string
+  pv_unitario: number
+  quantidade_pax: number
+  dias: number
+  forma_cobranca: FormaCobranca
+  perc_gift_card: number
+  provider_gc: ProviderGC
+  campanhas_ativas: string[]
+  parametros: IParametrosPricing
+  tpa_diario: number
+  moeda: string
+}
+
+export interface ICustoLinha {
+  label: string
+  base: 'BRUTO' | 'NET'
+  percentual: number
+  valor: number
+  imutavel?: boolean
+  detalhe?: string
+}
+
+export interface IResultadoSimulacao {
+  bruto_original: number
+  bruto_final: number
+  campanhas_aplicadas: string[]
+  comissao_total: number
+  net: number
+  linhas_custo: ICustoLinha[]
+  total_custos: number
+  margem_valor: number
+  margem_percentual: number
+  comissoes_detalhe: ComissaoResult[]
+  moeda: string
+  guardrail: 'OK' | 'ATENCAO' | 'CRITICO'
+}
+
+export interface ISimulacaoRepo {
+  getParametros(id_grupo: string | number, pais: 'BR' | 'AR'): Promise<IParametrosPricing | null>
+  saveParametros(p: IParametrosPricing): Promise<IParametrosPricing>
+  getTPA(id_grupo: string | number, pais: 'BR' | 'AR', destino?: string): Promise<ITPA | null>
+  saveTPA(tpa: ITPA): Promise<ITPA>
+  getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]>
+}

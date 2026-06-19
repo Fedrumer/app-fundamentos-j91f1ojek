@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 
 const navLinks = [
   { name: 'Dashboard', path: '/' },
+  { name: 'Simulador', path: '/simulador' },
   { name: 'Vendas', path: '/vendas' },
   { name: 'Agências', path: '/agencias' },
   { name: 'Produtos', path: '/produtos' },
