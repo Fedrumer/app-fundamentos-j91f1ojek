@@ -17,6 +17,10 @@ import {
   IDashboardStats,
   IIngestaoLog,
   IAlerta,
+  ISimulacaoRepo,
+  IParametrosPricing,
+  ITPA,
+  ICampanha,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -508,5 +512,70 @@ export class ClassificacaoRepoMock implements IClassificacaoRepo {
         data_movimento: new Date().toISOString(),
       })
     }
+  }
+}
+
+export class SimulacaoRepoMock implements ISimulacaoRepo {
+  async getParametros(
+    id_grupo: string | number,
+    pais: 'BR' | 'AR',
+  ): Promise<IParametrosPricing | null> {
+    return {
+      id_grupo_produto: id_grupo,
+      pais,
+      perc_impostos: 3.5,
+      perc_agenciamento: 5.0,
+      perc_bonificacoes: 5.0,
+      perc_admin: 10.0,
+    }
+  }
+
+  async saveParametros(p: IParametrosPricing): Promise<IParametrosPricing> {
+    return p
+  }
+
+  async getTPA(
+    id_grupo: string | number,
+    pais: 'BR' | 'AR',
+  ): Promise<ITPA | null> {
+    return {
+      id_grupo_produto: id_grupo,
+      pais,
+      destino: 'MUNDIAL',
+      custo_tpa_diario: pais === 'BR' ? 2.5 : 0.85,
+      moeda: pais === 'BR' ? 'BRL' : 'USD',
+    }
+  }
+
+  async saveTPA(tpa: ITPA): Promise<ITPA> {
+    return tpa
+  }
+
+  async getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]> {
+    if (pais === 'AR') {
+      return [
+        {
+          id: 'camp-ar-1',
+          nome: '20% Desconto Transferência/Depósito',
+          pais: 'AR',
+          tipo: 'DESCONTO_PERCENTUAL',
+          percentual: 20,
+          condicao_pagamento: 'TRANSFERENCIA_DEPOSITO',
+          id_grupo_produto: null,
+          ativo: true,
+        },
+        {
+          id: 'camp-ar-2',
+          nome: '2x1 Now Multi 150',
+          pais: 'AR',
+          tipo: '2X1',
+          percentual: 0,
+          condicao_pagamento: 'TRANSFERENCIA_DEPOSITO',
+          id_grupo_produto: null,
+          ativo: true,
+        },
+      ]
+    }
+    return []
   }
 }

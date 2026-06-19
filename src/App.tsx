@@ -19,6 +19,7 @@ import Finance from './pages/Finance'
 import Receivables from './pages/Receivables'
 import Cortesias from './pages/Cortesias'
 import PreVenda from './pages/PreVenda'
+import Simulador from './pages/Simulador'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/valores-a-receber" element={<Receivables />} />
                 <Route path="/pre-venda" element={<PreVenda />} />
                 <Route path="/cortesias" element={<Cortesias />} />
+                <Route path="/simulador" element={<Simulador />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
