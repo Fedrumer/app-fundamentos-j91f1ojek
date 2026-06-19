@@ -95,7 +95,7 @@ export default function MainLayout() {
             </Link>
 
             <nav className="hidden md:ml-6 md:flex md:items-center md:gap-1 lg:gap-2">
-              {navLinks.map((link) => (
+              {allLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}

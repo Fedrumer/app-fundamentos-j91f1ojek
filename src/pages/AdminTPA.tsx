@@ -21,6 +21,8 @@ import { useTenant } from '@/contexts/TenantContext'
 import { IProductGroup, ITPA, IParametrosPricing } from '@/domain/contracts'
 import { Lock, Loader2, Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type TPARow = {
   grupo: IProductGroup
@@ -146,11 +148,23 @@ export default function AdminTPA() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">TPA e Parâmetros de Custo</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure o custo de risco diário (TPA) e os percentuais de custo por grupo de produto
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">TPA e Parâmetros de Custo</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Configure o custo de risco diário (TPA) e os percentuais de custo por grupo de produto
+          </p>
+        </div>
+        <Badge
+          className={cn(
+            'mt-1 shrink-0 px-2.5 py-1 text-sm font-semibold',
+            pais === 'BR'
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-blue-600 text-white hover:bg-blue-700',
+          )}
+        >
+          {pais === 'BR' ? '🇧🇷 Brasil' : '🇦🇷 Argentina'}
+        </Badge>
       </div>
 
       {carregando ? (
