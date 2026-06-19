@@ -297,10 +297,29 @@ export interface IResultadoSimulacao {
   guardrail: 'OK' | 'ATENCAO' | 'CRITICO'
 }
 
+export interface ISimulacaoSalva {
+  id: string
+  nome: string
+  pais: 'BR' | 'AR'
+  inputs_json: unknown[]
+  resultados_json: unknown[]
+  created_at: string
+  updated_at: string
+}
+
 export interface ISimulacaoRepo {
   getParametros(id_grupo: string | number, pais: 'BR' | 'AR'): Promise<IParametrosPricing | null>
   saveParametros(p: IParametrosPricing): Promise<IParametrosPricing>
   getTPA(id_grupo: string | number, pais: 'BR' | 'AR', destino?: string): Promise<ITPA | null>
   saveTPA(tpa: ITPA): Promise<ITPA>
   getCampanhas(pais: 'BR' | 'AR'): Promise<ICampanha[]>
+  salvarSimulacao(
+    nome: string,
+    pais: 'BR' | 'AR',
+    id_usuario: string,
+    inputs: unknown[],
+    resultados: unknown[],
+  ): Promise<ISimulacaoSalva>
+  listarSimulacoes(pais: 'BR' | 'AR'): Promise<ISimulacaoSalva[]>
+  carregarSimulacao(id: string): Promise<ISimulacaoSalva>
 }

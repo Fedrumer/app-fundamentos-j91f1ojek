@@ -21,6 +21,7 @@ import {
   IParametrosPricing,
   ITPA,
   ICampanha,
+  ISimulacaoSalva,
 } from '@/domain/contracts'
 
 let mockVouchersData: IVoucherData[] = [
@@ -577,5 +578,37 @@ export class SimulacaoRepoMock implements ISimulacaoRepo {
       ]
     }
     return []
+  }
+
+  private _simulacoes: ISimulacaoSalva[] = []
+
+  async salvarSimulacao(
+    nome: string,
+    pais: 'BR' | 'AR',
+    _id_usuario: string,
+    inputs: unknown[],
+    resultados: unknown[],
+  ): Promise<ISimulacaoSalva> {
+    const sim: ISimulacaoSalva = {
+      id: `mock-${Date.now()}`,
+      nome,
+      pais,
+      inputs_json: inputs,
+      resultados_json: resultados,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    this._simulacoes.push(sim)
+    return sim
+  }
+
+  async listarSimulacoes(pais: 'BR' | 'AR'): Promise<ISimulacaoSalva[]> {
+    return this._simulacoes.filter((s) => s.pais === pais).slice().reverse()
+  }
+
+  async carregarSimulacao(id: string): Promise<ISimulacaoSalva> {
+    const sim = this._simulacoes.find((s) => s.id === id)
+    if (!sim) throw new Error(`Simulação ${id} não encontrada`)
+    return sim
   }
 }

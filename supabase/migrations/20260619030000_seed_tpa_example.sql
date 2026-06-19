@@ -1,0 +1,16 @@
+-- Seed de exemplo para tpa_produtos.
+-- ATENÇÃO: Os UUIDs abaixo são placeholders. Antes de executar, substitua-os
+-- pelos IDs reais dos grupos de produto:
+--   SELECT id, nome FROM public.grupos_produtos ORDER BY nome;
+--
+-- Exemplo de insert (comentado até obter IDs reais):
+--
+-- INSERT INTO public.tpa_produtos (id_grupo_produto, pais, destino, custo_tpa_diario, moeda)
+-- VALUES
+--   ('UUID-DO-GRUPO-BR', 'BR', 'MUNDIAL',     2.50, 'BRL'),
+--   ('UUID-DO-GRUPO-BR', 'BR', 'EUA_CANADA',  4.20, 'BRL'),
+--   ('UUID-DO-GRUPO-AR', 'AR', 'MUNDIAL',     0.85, 'USD'),
+--   ('UUID-DO-GRUPO-AR', 'AR', 'EUA_CANADA',  1.40, 'USD')
+-- ON CONFLICT (id_grupo_produto, pais, destino) DO UPDATE
+--   SET custo_tpa_diario = EXCLUDED.custo_tpa_diario,
+--       moeda = EXCLUDED.moeda;

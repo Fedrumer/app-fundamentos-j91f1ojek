@@ -22,6 +22,7 @@ import {
   IParametrosPricing,
   ITPA,
   ICampanha,
+  ISimulacaoSalva,
 } from '@/domain/contracts'
 
 export class UsersRepoSupabase implements IUsersRepo {
@@ -1027,5 +1028,75 @@ export class SimulacaoRepoSupabase implements ISimulacaoRepo {
       id_grupo_produto: c.id_grupo_produto,
       ativo: c.ativo,
     }))
+  }
+
+  async salvarSimulacao(
+    nome: string,
+    pais: 'BR' | 'AR',
+    id_usuario: string,
+    inputs: unknown[],
+    resultados: unknown[],
+  ): Promise<ISimulacaoSalva> {
+    const { data, error } = await supabase
+      .from('simulacoes')
+      .insert({
+        nome,
+        pais,
+        id_usuario,
+        inputs_json: inputs,
+        resultados_json: resultados,
+      })
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+    return {
+      id: data.id,
+      nome: data.nome,
+      pais: data.pais,
+      inputs_json: data.inputs_json,
+      resultados_json: data.resultados_json,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    }
+  }
+
+  async listarSimulacoes(pais: 'BR' | 'AR'): Promise<ISimulacaoSalva[]> {
+    const { data, error } = await supabase
+      .from('simulacoes')
+      .select('*')
+      .eq('pais', pais)
+      .order('updated_at', { ascending: false })
+      .limit(50)
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((d) => ({
+      id: d.id,
+      nome: d.nome,
+      pais: d.pais,
+      inputs_json: d.inputs_json,
+      resultados_json: d.resultados_json,
+      created_at: d.created_at,
+      updated_at: d.updated_at,
+    }))
+  }
+
+  async carregarSimulacao(id: string): Promise<ISimulacaoSalva> {
+    const { data, error } = await supabase
+      .from('simulacoes')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) throw new Error(error.message)
+    return {
+      id: data.id,
+      nome: data.nome,
+      pais: data.pais,
+      inputs_json: data.inputs_json,
+      resultados_json: data.resultados_json,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    }
   }
 }

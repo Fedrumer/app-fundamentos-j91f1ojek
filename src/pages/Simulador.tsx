@@ -27,6 +27,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useRepositories } from '@/contexts/RepositoryContext'
 import { useTenant } from '@/contexts/TenantContext'
 import {
@@ -36,6 +44,7 @@ import {
   IParametrosPricing,
   ICampanha,
   IResultadoSimulacao,
+  ISimulacaoSalva,
   FormaCobranca,
   ProviderGC,
 } from '@/domain/contracts'
@@ -54,6 +63,9 @@ import {
   Percent,
   Minus,
   Loader2,
+  Save,
+  History,
+  FolderOpen,
 } from 'lucide-react'
 
 // ─── Tipos locais ─────────────────────────────────────────────────────────────
@@ -145,6 +157,13 @@ export default function Simulador() {
   const [resultados, setResultados] = useState<LinhaSimulacaoResultado[]>([])
   const [mostrarProposta, setMostrarProposta] = useState(false)
   const [calculando, setCalculando] = useState(false)
+
+  // ── Save / History ─────────────────────────────────────────────────────────
+  const [mostrarSalvar, setMostrarSalvar] = useState(false)
+  const [nomeCotacao, setNomeCotacao] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [simulacoesSalvas, setSimulacoesSalvas] = useState<ISimulacaoSalva[]>([])
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false)
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -256,6 +275,50 @@ export default function Simulador() {
     await simulacaoRepo.saveParametros(params)
   }
 
+  const salvarTPA = async (id_grupo: string, custo_tpa_diario: number, tpamoeda: string) => {
+    await simulacaoRepo.saveTPA({ id_grupo_produto: id_grupo, pais, destino: 'MUNDIAL', custo_tpa_diario, moeda: tpamoeda })
+    setTpaPorGrupo((prev) => ({ ...prev, [id_grupo]: custo_tpa_diario }))
+  }
+
+  const abrirSalvar = () => {
+    setNomeCotacao('')
+    setMostrarSalvar(true)
+  }
+
+  const confirmarSalvar = async () => {
+    if (!session || !nomeCotacao.trim()) return
+    setSalvando(true)
+    try {
+      await simulacaoRepo.salvarSimulacao(
+        nomeCotacao.trim(),
+        pais,
+        String(session.id_usuario ?? ''),
+        linhas as unknown[],
+        resultados.map((r) => r.resultado) as unknown[],
+      )
+      setMostrarSalvar(false)
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const abrirHistorico = async () => {
+    setCarregandoHistorico(true)
+    const sims = await simulacaoRepo.listarSimulacoes(pais)
+    setSimulacoesSalvas(sims)
+    setCarregandoHistorico(false)
+  }
+
+  const carregarSimulacaoSalva = async (sim: ISimulacaoSalva) => {
+    const savedLinhas = sim.inputs_json as LinhaSimulacaoForm[]
+    if (!savedLinhas?.length) return
+    setLinhas(savedLinhas)
+    setTabAtiva(0)
+    for (const l of savedLinhas) {
+      if (l.id_grupo) await carregarDadosGrupo(l.id_grupo)
+    }
+  }
+
   const linhaAtiva = linhas[tabAtiva] ?? linhas[0]
   const resultadoAtivo = resultados.find((r) => r.form.id === linhaAtiva?.id)
   const temResultados = resultados.length > 0
@@ -264,22 +327,103 @@ export default function Simulador() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Simulador de Cotação</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Motor de cotação — Now Assistance · Margem calculada sobre Bruto
           </p>
         </div>
-        <Button
-          onClick={() => setMostrarProposta(true)}
-          disabled={!temResultados}
-          className="shrink-0"
-        >
-          <FileText className="mr-2 h-4 w-4" />
-          Gerar Proposta Parceiro
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" onClick={abrirHistorico}>
+                <History className="mr-1.5 h-4 w-4" />
+                Cotações Salvas
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[360px] sm:w-[420px]">
+              <SheetHeader>
+                <SheetTitle>Cotações Salvas</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 space-y-2">
+                {carregandoHistorico ? (
+                  <div className="flex items-center justify-center py-10 text-slate-400">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Carregando…
+                  </div>
+                ) : simulacoesSalvas.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-slate-400">Nenhuma cotação salva ainda</p>
+                ) : (
+                  simulacoesSalvas.map((sim) => (
+                    <div key={sim.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{sim.nome}</p>
+                        <p className="text-xs text-slate-400">
+                          {new Date(sim.updated_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => carregarSimulacaoSalva(sim)}
+                        className="text-primary"
+                      >
+                        <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                        Carregar
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={abrirSalvar}
+            disabled={!temResultados}
+          >
+            <Save className="mr-1.5 h-4 w-4" />
+            Salvar Cotação
+          </Button>
+
+          <Button
+            onClick={() => setMostrarProposta(true)}
+            disabled={!temResultados}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Gerar Proposta
+          </Button>
+        </div>
       </div>
+
+      {/* Dialog: Salvar cotação */}
+      <Dialog open={mostrarSalvar} onOpenChange={setMostrarSalvar}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salvar Cotação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label className="text-sm">Nome da cotação</Label>
+            <Input
+              autoFocus
+              placeholder="Ex: Ag. América do Sul — Europa 10d 2pax"
+              value={nomeCotacao}
+              onChange={(e) => setNomeCotacao(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && confirmarSalvar()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setMostrarSalvar(false)}>Cancelar</Button>
+            <Button onClick={confirmarSalvar} disabled={!nomeCotacao.trim() || salvando}>
+              {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Grid dois painéis */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
@@ -312,13 +456,17 @@ export default function Simulador() {
               agencias={agencias}
               campanhas={campanhas}
               parametrosPorGrupo={parametrosPorGrupo}
+              tpaPorGrupo={tpaPorGrupo}
               linhas={linhas}
               onAtualizarLinha={atualizarLinha}
               onMudarGrupo={aoMudarGrupo}
               onMudarVariacao={aoMudarVariacao}
               onSalvarParametros={salvarParametros}
               onSetParametros={setParametrosPorGrupo}
+              onSalvarTPA={salvarTPA}
               pais={pais}
+              isAdmin={session?.perfil_admin ?? false}
+              moeda={moeda}
             />
           )}
 
@@ -403,13 +551,17 @@ interface FormCardProps {
   agencias: IAgencia[]
   campanhas: ICampanha[]
   parametrosPorGrupo: Record<string, IParametrosPricing>
+  tpaPorGrupo: Record<string, number>
   linhas: ReturnType<typeof criarLinhaVazia>[]
   onAtualizarLinha: (id: number, campo: Partial<ReturnType<typeof criarLinhaVazia>>) => void
   onMudarGrupo: (linhaId: number, id_grupo: string) => void
   onMudarVariacao: (linhaId: number, id_variacao: string, id_grupo: string) => void
   onSalvarParametros: (id_grupo: string) => void
   onSetParametros: React.Dispatch<React.SetStateAction<Record<string, IParametrosPricing>>>
+  onSalvarTPA: (id_grupo: string, custo: number, moeda: string) => Promise<void>
   pais: 'BR' | 'AR'
+  isAdmin: boolean
+  moeda: string
 }
 
 function FormCard({
@@ -419,13 +571,19 @@ function FormCard({
   agencias,
   campanhas,
   parametrosPorGrupo,
+  tpaPorGrupo,
   onAtualizarLinha,
   onMudarGrupo,
   onMudarVariacao,
   onSalvarParametros,
   onSetParametros,
+  onSalvarTPA,
   pais,
+  isAdmin,
+  moeda: formMoeda,
 }: FormCardProps) {
+  const [tpaEditando, setTpaEditando] = useState<string>('')
+  const [tpaSalvando, setTpaSalvando] = useState(false)
   const upd = (campo: Partial<typeof linha>) => onAtualizarLinha(linha.id, campo)
 
   return (
@@ -677,6 +835,57 @@ function FormCard({
                 </Button>
               </AccordionContent>
             </AccordionItem>
+
+            {/* TPA admin — somente admin */}
+            {isAdmin && (
+              <AccordionItem value="tpa" className="border-0">
+                <AccordionTrigger className="py-2 text-xs text-slate-500 hover:no-underline">
+                  <span className="flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    TPA WMMS (custo de risco — imutável para cotação)
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2 pt-1">
+                    {tpaPorGrupo[linha.id_grupo] === 0 || tpaPorGrupo[linha.id_grupo] === undefined ? (
+                      <p className="text-xs font-medium text-red-600">
+                        TPA não configurado para este grupo — margem pode estar inflada
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        Atual: <strong>{tpaPorGrupo[linha.id_grupo]?.toFixed(4)}</strong> {formMoeda}/dia
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        placeholder="Custo TPA por dia"
+                        value={tpaEditando}
+                        onChange={(e) => setTpaEditando(e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 shrink-0 text-xs"
+                        disabled={!tpaEditando || tpaSalvando}
+                        onClick={async () => {
+                          setTpaSalvando(true)
+                          await onSalvarTPA(linha.id_grupo, Number(tpaEditando), formMoeda)
+                          setTpaEditando('')
+                          setTpaSalvando(false)
+                        }}
+                      >
+                        {tpaSalvando ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400">Destino: MUNDIAL (referência universal)</p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
           </Accordion>
         )}
       </CardContent>
